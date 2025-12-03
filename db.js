@@ -16,11 +16,11 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 let db = {
-  users: [],     // { id, email, name, passwordHash, role: 'ADMIN' | 'CUSTOMER' }
-  sites: [],     // { id, name, address, lat, lng, ownerUserId }
-  sensors: [],   // { id, siteId, code, installedAt, lastSeenAt }
-  measurements: [], // { id, sensorId, createdAt, metrics: { shake, bending, raw } }
-  alerts: []     // { id, siteId, sensorId, createdAt, type, message, level }
+  users: [],
+  sites: [],
+  sensors: [],
+  measurements: [],
+  alerts: []
 };
 
 function loadDb() {
@@ -93,7 +93,10 @@ function ensureDefaults() {
       lat: 37.5665,
       lng: 126.9780,
       ownerUserId: customer.id,
-      createdAt: new Date().toISOString()
+      sensorCountPlanned: 4,
+      buildingSize: '지상 15층 / 8,000㎡',
+      buildYear: 2010,
+      notes: '데모용 샘플 건물'
     };
     db.sites.push(site);
     changed = true;
@@ -133,7 +136,7 @@ function getSitesForUser(user) {
   return db.sites.filter(s => s.ownerUserId === user.id);
 }
 
-function addSite({ name, address, lat, lng, ownerUserId }) {
+function addSite({ name, address, lat, lng, ownerUserId, sensorCountPlanned, buildingSize, buildYear, notes }) {
   const site = {
     id: uuidv4(),
     name,
@@ -141,6 +144,10 @@ function addSite({ name, address, lat, lng, ownerUserId }) {
     lat,
     lng,
     ownerUserId: ownerUserId || null,
+    sensorCountPlanned: typeof sensorCountPlanned === 'number' ? sensorCountPlanned : null,
+    buildingSize: buildingSize || '',
+    buildYear: typeof buildYear === 'number' ? buildYear : null,
+    notes: notes || '',
     createdAt: new Date().toISOString()
   };
   db.sites.push(site);
@@ -177,13 +184,11 @@ function addMeasurement({ sensorId, metrics }) {
   };
   db.measurements.push(measurement);
 
-  // Update lastSeenAt
   const sensor = db.sensors.find(s => s.id === sensorId);
   if (sensor) {
     sensor.lastSeenAt = measurement.createdAt;
   }
 
-  // Keep only last 5000 measurements
   if (db.measurements.length > 5000) {
     db.measurements = db.measurements.slice(-4000);
   }
@@ -220,6 +225,63 @@ function getSensorsWithStatusForSite(siteId, offlineThresholdSeconds = 60) {
   });
 }
 
+function computeSiteStatus(siteId) {
+  const sensorsStatus = getSensorsWithStatusForSite(siteId);
+  const latestList = getLatestMeasurementsForSite(siteId, 1);
+  const latest = latestList.length ? latestList[0] : null;
+
+  if (!sensorsStatus.length) {
+    return {
+      level: 'EMPTY',
+      label: '센서 미설치',
+      reason: '등록된 센서가 없습니다.'
+    };
+  }
+
+  const allOffline = sensorsStatus.every(s => s.offline);
+  const anyOffline = sensorsStatus.some(s => s.offline);
+
+  let shake = null;
+  let bending = null;
+  if (latest && latest.metrics) {
+    if (typeof latest.metrics.shake === 'number') shake = latest.metrics.shake;
+    if (typeof latest.metrics.bending === 'number') bending = latest.metrics.bending;
+  }
+
+  const high = 0.3;
+  const mid = 0.1;
+
+  if (allOffline) {
+    return {
+      level: 'OFFLINE',
+      label: '신호 끊김',
+      reason: '모든 센서에서 데이터가 수신되지 않습니다.'
+    };
+  }
+
+  if ((shake !== null && shake >= high) || (bending !== null && bending >= high)) {
+    return {
+      level: 'DANGER',
+      label: '경고',
+      reason: '최근 측정값이 설정 임계치 이상입니다.'
+    };
+  }
+
+  if ((shake !== null && shake >= mid) || (bending !== null && bending >= mid) || anyOffline) {
+    return {
+      level: 'WARN',
+      label: '주의',
+      reason: '일부 값이 약간 높거나 일부 센서가 오프라인입니다.'
+    };
+  }
+
+  return {
+    level: 'SAFE',
+    label: '안전',
+    reason: '최근 데이터 기준으로 안정적인 상태입니다.'
+  };
+}
+
 module.exports = {
   findUserByEmail,
   getSitesForUser,
@@ -229,5 +291,6 @@ module.exports = {
   addMeasurement,
   getLatestMeasurementsForSite,
   getSensorsWithStatusForSite,
+  computeSiteStatus,
   _rawDb: () => db
 };

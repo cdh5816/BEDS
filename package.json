@@ -1,6 +1,6 @@
 {
   "name": "beds-v2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "BEDS v2 - Building Earthquake Detection System (© AIRX individual business)",
   "main": "server.js",
   "scripts": {

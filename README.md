@@ -3,9 +3,12 @@
 
 © AIRX (individual business) - All rights reserved.
 
-이 패키지는 형님이 말한 BEDS v2의 기본 웹 구조입니다.
+이 패키지는 형님용 BEDS v2 웹 기본 구조입니다.
 
-- 공개 지도: BEDS가 관리하는 모든 현장 공개 표시
-- 관리자 로그인(admin@beds.local / bedsadmin123!): 현장 등록 + 좌표 입력 + 카카오 주소 검색 버튼
-- 고객 로그인(customer@beds.local / bedscustomer123!): 자기 현장 목록 + 실시간 상태(폴링) 조회
-- 센서 데이터 수집 API: `/api/sensors/ingest` (ESP에서 HTTP로 쏘면 DB에 쌓임)
+- 공개 지도: 모든 현장 위치 + 안전/주의/경고/신호끊김 상태 공개 표시
+- 관리자 로그인(admin@beds.local / bedsadmin123!):
+  - 주소 입력 → 카카오 REST API로 위/경도 자동 계산
+  - 센서 설치 개수 / 건물 규모 / 준공 연도 / 메모 입력
+- 고객 로그인(customer@beds.local / bedscustomer123!):
+  - 자기 현장 선택 → 현재 상태 뱃지 + 센서 개수 + 흔들림/휨 + 최근 타임라인
+- 센서 데이터 수집 API: `/api/sensors/ingest`

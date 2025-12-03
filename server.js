@@ -17,7 +17,8 @@ const {
   registerOrGetSensorByCode,
   addMeasurement,
   getLatestMeasurementsForSite,
-  getSensorsWithStatusForSite
+  getSensorsWithStatusForSite,
+  computeSiteStatus
 } = require('./db');
 
 dotenv.config();
@@ -98,29 +99,52 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.get('/api/public/sites', (req, res) => {
-  const sites = getSitesForUser({ role: 'ADMIN', id: null }).map(s => ({
-    id: s.id,
-    name: s.name,
-    address: s.address,
-    lat: s.lat,
-    lng: s.lng
-  }));
+  const sites = getSitesForUser({ role: 'ADMIN', id: null }).map(s => {
+    const status = computeSiteStatus(s.id);
+    return {
+      id: s.id,
+      name: s.name,
+      address: s.address,
+      lat: s.lat,
+      lng: s.lng,
+      sensorCountPlanned: s.sensorCountPlanned,
+      buildingSize: s.buildingSize,
+      buildYear: s.buildYear,
+      notes: s.notes,
+      status
+    };
+  });
   res.json({ sites });
 });
 
 app.get('/api/admin/sites', authToken, requireRole('ADMIN'), (req, res) => {
   const sites = getSitesForUser(req.user);
-  res.json({ sites });
+  const enriched = sites.map(s => {
+    const status = computeSiteStatus(s.id);
+    return { ...s, status };
+  });
+  res.json({ sites: enriched });
 });
 
 app.post('/api/admin/sites', authToken, requireRole('ADMIN'), (req, res) => {
   try {
-    const { name, address, lat, lng, ownerUserId } = req.body;
+    const { name, address, lat, lng, ownerUserId, sensorCountPlanned, buildingSize, buildYear, notes } = req.body;
     if (!name || !address || typeof lat !== 'number' || typeof lng !== 'number') {
       return res.status(400).json({ message: 'name, address, lat, lng가 필요합니다.' });
     }
-    const site = addSite({ name, address, lat, lng, ownerUserId });
-    res.status(201).json({ site });
+    const site = addSite({
+      name,
+      address,
+      lat,
+      lng,
+      ownerUserId,
+      sensorCountPlanned,
+      buildingSize,
+      buildYear,
+      notes
+    });
+    const status = computeSiteStatus(site.id);
+    res.status(201).json({ site: { ...site, status } });
   } catch (err) {
     console.error('add site error', err);
     res.status(500).json({ message: '현장 등록 중 오류가 발생했습니다.' });
@@ -129,7 +153,11 @@ app.post('/api/admin/sites', authToken, requireRole('ADMIN'), (req, res) => {
 
 app.get('/api/customer/sites', authToken, requireRole('CUSTOMER'), (req, res) => {
   const sites = getSitesForUser(req.user);
-  res.json({ sites });
+  const enriched = sites.map(s => {
+    const status = computeSiteStatus(s.id);
+    return { ...s, status };
+  });
+  res.json({ sites: enriched });
 });
 
 app.get('/api/customer/sites/:siteId/status', authToken, requireRole('CUSTOMER'), (req, res) => {
@@ -143,13 +171,12 @@ app.get('/api/customer/sites/:siteId/status', authToken, requireRole('CUSTOMER')
 
     const sensors = getSensorsWithStatusForSite(siteId);
     const measurements = getLatestMeasurementsForSite(siteId, 50);
-
     let latest = null;
     if (measurements.length > 0) {
       latest = measurements[measurements.length - 1];
     }
-
     const anyOffline = sensors.some(s => s.offline);
+    const status = computeSiteStatus(siteId);
 
     res.json({
       site: {
@@ -157,12 +184,17 @@ app.get('/api/customer/sites/:siteId/status', authToken, requireRole('CUSTOMER')
         name: site.name,
         address: site.address,
         lat: site.lat,
-        lng: site.lng
+        lng: site.lng,
+        sensorCountPlanned: site.sensorCountPlanned,
+        buildingSize: site.buildingSize,
+        buildYear: site.buildYear,
+        notes: site.notes
       },
       sensors,
       latestMeasurement: latest,
       measurements,
-      connectionLost: anyOffline
+      connectionLost: anyOffline,
+      status
     });
   } catch (err) {
     console.error('site status error', err);
