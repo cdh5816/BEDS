@@ -1,5 +1,7 @@
+
 // © AIRX (individual business) - All rights reserved.
-// BEDS (Building Earthquake Detection System) - simple JSON file database.
+// BEDS v2 - simple JSON file "DB" for demo.
+// In real production, replace this with PostgreSQL or another proper DB.
 
 const fs = require('fs');
 const path = require('path');
@@ -14,13 +16,12 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 let db = {
-  users: [],
-  buildings: []
+  users: [],     // { id, email, name, passwordHash, role: 'ADMIN' | 'CUSTOMER' }
+  sites: [],     // { id, name, address, lat, lng, ownerUserId }
+  sensors: [],   // { id, siteId, code, installedAt, lastSeenAt }
+  measurements: [], // { id, sensorId, createdAt, metrics: { shake, bending, raw } }
+  alerts: []     // { id, siteId, sensorId, createdAt, type, message, level }
 };
-
-function saveDb() {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
-}
 
 function loadDb() {
   if (fs.existsSync(DB_FILE)) {
@@ -29,80 +30,204 @@ function loadDb() {
       db = JSON.parse(raw);
     } catch (err) {
       console.error('Failed to parse db.json, starting with empty DB:', err);
-      db = { users: [], buildings: [] };
     }
   }
 }
 
-function ensureDefaults() {
-  // Default admin user
-  if (!db.users || !Array.isArray(db.users)) {
-    db.users = [];
-  }
+function saveDb() {
+  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
+}
 
-  const hasAdmin = db.users.some(u => u.role === 'SUPER_ADMIN');
-  if (!hasAdmin) {
-    const password = 'bedsadmin123!';
-    const passwordHash = bcrypt.hashSync(password, 10);
-    const adminUser = {
+// Seed default admin + example customer + example site/sensor for demo
+function ensureDefaults() {
+  if (!Array.isArray(db.users)) db.users = [];
+  if (!Array.isArray(db.sites)) db.sites = [];
+  if (!Array.isArray(db.sensors)) db.sensors = [];
+  if (!Array.isArray(db.measurements)) db.measurements = [];
+  if (!Array.isArray(db.alerts)) db.alerts = [];
+
+  let changed = false;
+
+  // Admin user
+  const adminEmail = 'admin@beds.local';
+  let admin = db.users.find(u => u.email === adminEmail);
+  if (!admin) {
+    const passwordHash = bcrypt.hashSync('bedsadmin123!', 10);
+    admin = {
       id: uuidv4(),
-      email: 'admin@beds.local',
+      email: adminEmail,
+      name: 'BEDS Admin',
       passwordHash,
-      name: 'Default Admin',
-      role: 'SUPER_ADMIN',
+      role: 'ADMIN',
       createdAt: new Date().toISOString()
     };
-    db.users.push(adminUser);
-    console.log('Default admin created:');
-    console.log('  email: admin@beds.local');
-    console.log('  password: bedsadmin123!');
+    db.users.push(admin);
+    changed = true;
+    console.log('Seeded admin user: admin@beds.local / bedsadmin123!');
   }
 
-  // Example building
-  if (!db.buildings || !Array.isArray(db.buildings)) {
-    db.buildings = [];
-  }
-  if (db.buildings.length === 0) {
-    db.buildings.push({
+  // Example customer
+  const custEmail = 'customer@beds.local';
+  let customer = db.users.find(u => u.email === custEmail);
+  if (!customer) {
+    const passwordHash = bcrypt.hashSync('bedscustomer123!', 10);
+    customer = {
       id: uuidv4(),
-      name: '예시 건물 - 서울 본사',
+      email: custEmail,
+      name: 'Demo Customer',
+      passwordHash,
+      role: 'CUSTOMER',
+      createdAt: new Date().toISOString()
+    };
+    db.users.push(customer);
+    changed = true;
+    console.log('Seeded customer user: customer@beds.local / bedscustomer123!');
+  }
+
+  // Example site
+  if (!db.sites.some(s => s.name === '샘플 건물 - 서울 HQ')) {
+    const site = {
+      id: uuidv4(),
+      name: '샘플 건물 - 서울 HQ',
       address: '서울특별시 중구 세종대로',
       lat: 37.5665,
       lng: 126.9780,
+      ownerUserId: customer.id,
       createdAt: new Date().toISOString()
-    });
+    };
+    db.sites.push(site);
+    changed = true;
+
+    // Example sensor
+    const sensor = {
+      id: uuidv4(),
+      siteId: site.id,
+      code: 'DEMO-SENSOR-001',
+      installedAt: new Date().toISOString(),
+      lastSeenAt: null
+    };
+    db.sensors.push(sensor);
+    changed = true;
   }
 
-  saveDb();
+  if (changed) saveDb();
 }
 
 loadDb();
 ensureDefaults();
 
-function getUserByEmail(email) {
+// --- helpers ---
+
+function findUserByEmail(email) {
   return db.users.find(u => u.email === email);
 }
 
-function getBuildings() {
-  return db.buildings;
+function getSiteById(id) {
+  return db.sites.find(s => s.id === id);
 }
 
-function addBuilding({ name, address, lat, lng }) {
-  const building = {
+function getSitesForUser(user) {
+  if (user.role === 'ADMIN') {
+    return db.sites;
+  }
+  return db.sites.filter(s => s.ownerUserId === user.id);
+}
+
+function addSite({ name, address, lat, lng, ownerUserId }) {
+  const site = {
     id: uuidv4(),
     name,
     address,
     lat,
     lng,
+    ownerUserId: ownerUserId || null,
     createdAt: new Date().toISOString()
   };
-  db.buildings.push(building);
+  db.sites.push(site);
   saveDb();
-  return building;
+  return site;
+}
+
+function getSensorsForSite(siteId) {
+  return db.sensors.filter(s => s.siteId === siteId);
+}
+
+function registerOrGetSensorByCode(siteId, code) {
+  let sensor = db.sensors.find(s => s.code === code);
+  if (!sensor) {
+    sensor = {
+      id: uuidv4(),
+      siteId,
+      code,
+      installedAt: new Date().toISOString(),
+      lastSeenAt: null
+    };
+    db.sensors.push(sensor);
+  }
+  saveDb();
+  return sensor;
+}
+
+function addMeasurement({ sensorId, metrics }) {
+  const measurement = {
+    id: uuidv4(),
+    sensorId,
+    createdAt: new Date().toISOString(),
+    metrics
+  };
+  db.measurements.push(measurement);
+
+  // Update lastSeenAt
+  const sensor = db.sensors.find(s => s.id === sensorId);
+  if (sensor) {
+    sensor.lastSeenAt = measurement.createdAt;
+  }
+
+  // Keep only last 5000 measurements
+  if (db.measurements.length > 5000) {
+    db.measurements = db.measurements.slice(-4000);
+  }
+
+  saveDb();
+  return measurement;
+}
+
+function getLatestMeasurementsForSite(siteId, limit = 50) {
+  const sensors = getSensorsForSite(siteId).map(s => s.id);
+  const list = db.measurements
+    .filter(m => sensors.includes(m.sensorId))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, limit);
+  return list.reverse();
+}
+
+function getSensorsWithStatusForSite(siteId, offlineThresholdSeconds = 60) {
+  const sensors = getSensorsForSite(siteId);
+  const now = Date.now();
+  return sensors.map(sensor => {
+    const last = sensor.lastSeenAt ? new Date(sensor.lastSeenAt).getTime() : null;
+    const lastDiffSec = last ? (now - last) / 1000 : null;
+    const isOffline = lastDiffSec === null || lastDiffSec > offlineThresholdSeconds;
+    return {
+      id: sensor.id,
+      code: sensor.code,
+      siteId: sensor.siteId,
+      installedAt: sensor.installedAt,
+      lastSeenAt: sensor.lastSeenAt,
+      offline: isOffline,
+      lastDiffSec
+    };
+  });
 }
 
 module.exports = {
-  getUserByEmail,
-  getBuildings,
-  addBuilding
+  findUserByEmail,
+  getSitesForUser,
+  getSiteById,
+  addSite,
+  registerOrGetSensorByCode,
+  addMeasurement,
+  getLatestMeasurementsForSite,
+  getSensorsWithStatusForSite,
+  _rawDb: () => db
 };
