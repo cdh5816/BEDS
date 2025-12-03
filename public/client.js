@@ -24,6 +24,15 @@ function ensureLoggedIn() {
   }
 }
 
+function setupLogout() {
+  const btn = document.getElementById('logout-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    localStorage.removeItem('beds_logged_in');
+    window.location.href = 'index.html';
+  });
+}
+
 async function loadClientSites() {
   const res = await fetch(`${API_BASE}/api/sites`);
   clientSites = await res.json();
@@ -32,7 +41,7 @@ async function loadClientSites() {
 
   if (!clientSites.length) {
     const opt = document.createElement('option');
-    opt.textContent = 'No sites registered.';
+    opt.textContent = '등록된 현장이 없습니다.';
     opt.disabled = true;
     opt.selected = true;
     clientSiteSelectEl.appendChild(opt);
@@ -56,17 +65,17 @@ function renderClientStatus(site, metrics) {
 
   const wrap = document.createElement('div');
   let statusClass = 'client-status-safe';
-  let mainLabel = 'SAFE';
-  let subLabel = 'Structure status is within normal range.';
+  let mainLabel = '안전';
+  let subLabel = '구조 상태가 정상 범위 내에 있습니다.';
 
   if (site.status === 'CAUTION') {
     statusClass = 'client-status-caution';
-    mainLabel = 'CAUTION';
-    subLabel = 'Monitoring recommended for this site.';
+    mainLabel = '주의';
+    subLabel = '이 현장은 모니터링이 권장됩니다.';
   } else if (site.status === 'ALERT') {
     statusClass = 'client-status-alert';
-    mainLabel = 'ALERT';
-    subLabel = 'Immediate inspection recommended.';
+    mainLabel = '경고';
+    subLabel = '즉시 점검이 필요한 수준입니다.';
   }
 
   wrap.className = `client-status-badge-inner ${statusClass}`;
@@ -134,7 +143,7 @@ function renderMiniChart(metrics) {
 
 function initMap() {
   const mapEl = document.getElementById('site-map');
-  if (!mapEl) return;
+  if (!mapEl || typeof L === 'undefined') return;
 
   map = L.map('site-map', {
     zoomControl: false
@@ -210,6 +219,7 @@ async function loadMetricsForSelected() {
 
 function initClient() {
   ensureLoggedIn();
+  setupLogout();
   initMap();
   loadClientSites();
   clientSiteSelectEl.addEventListener('change', loadMetricsForSelected);

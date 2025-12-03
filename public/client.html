@@ -4,10 +4,10 @@
 
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>BEDS · Building Monitoring</title>
+  <title>BEDS · 건물 모니터링</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -16,21 +16,24 @@
 <body class="client-body">
   <header class="app-header">
     <div>
-      <h1 class="app-title">BEDS Monitoring</h1>
-      <p class="subtitle">Per-building vibration and drift overview.</p>
+      <h1 class="app-title">BEDS 건물 모니터링</h1>
+      <p class="subtitle">현장별 진동/휨 이력과 위험도를 한눈에 확인하는 화면입니다.</p>
     </div>
-    <nav class="app-nav">
-      <a href="index.html" class="nav-link">Landing</a>
-      <span class="nav-link nav-link--active">Monitoring</span>
-      <a href="admin.html" class="nav-link">Admin</a>
-    </nav>
+    <div class="app-header-right">
+      <nav class="app-nav">
+        <a href="index.html" class="nav-link">첫 화면</a>
+        <span class="nav-link nav-link--active">모니터링</span>
+        <a href="admin.html" class="nav-link">관리자</a>
+      </nav>
+      <button id="logout-btn" class="btn btn--ghost btn--sm">로그아웃</button>
+    </div>
   </header>
 
   <main class="client-layout">
     <section class="panel panel--client-main">
       <div class="client-header-row">
         <div class="client-site-select">
-          <label for="client-site-select">Select site</label>
+          <label for="client-site-select">현장 선택</label>
           <select id="client-site-select"></select>
         </div>
         <div id="client-status-badge" class="client-status-badge">
@@ -40,43 +43,43 @@
 
       <div class="metric-grid">
         <div class="kpi-card">
-          <div class="kpi-label">Events (last 24h)</div>
+          <div class="kpi-label">최근 24시간 이벤트 수</div>
           <div id="kpi-today-events" class="kpi-value">-</div>
-          <div class="kpi-sub">Number of detected vibration events</div>
+          <div class="kpi-sub">감지된 진동 이벤트 개수</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Max amplitude (today)</div>
+          <div class="kpi-label">오늘 최대 진폭</div>
           <div id="kpi-today-maxmag" class="kpi-value">-</div>
-          <div class="kpi-sub">Relative motion magnitude</div>
+          <div class="kpi-sub">상대적 진동 크기(단위: 공학적 지표)</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Max drift (today)</div>
+          <div class="kpi-label">오늘 최대 휨 변위</div>
           <div id="kpi-today-maxdrift" class="kpi-value">-</div>
-          <div class="kpi-sub">mm (simplified demo metric)</div>
+          <div class="kpi-sub">단위: mm (데모 기준 값)</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Alerts (last 30d)</div>
+          <div class="kpi-label">최근 30일 경고 횟수</div>
           <div id="kpi-30d-alerts" class="kpi-value">-</div>
-          <div class="kpi-sub">High-level alert occurrences</div>
+          <div class="kpi-sub">설정된 임계값을 넘은 날 수</div>
         </div>
       </div>
 
       <div class="map-wrapper">
         <div class="map-header">
-          <span class="map-title">Site map</span>
-          <span class="map-subtitle">Sensor location based on registered address</span>
+          <span class="map-title">현장 지도</span>
+          <span class="map-subtitle">등록된 주소 기반으로 센서 위치가 표시됩니다.</span>
         </div>
         <div id="site-map" class="site-map"></div>
         <p class="help-text map-help">
-          ※ 주소를 등록할 때 위·경도가 함께 저장되며, 이 지도는 해당 좌표를 기준으로 표시됩니다.
+          ※ 관리자 페이지에서 주소 검색 후 저장하면, 해당 좌표를 기반으로 이 지도에 표시됩니다.
         </p>
       </div>
     </section>
 
     <section class="panel panel--client-chart">
-      <h2>7-day vibration pattern</h2>
+      <h2>최근 7일 진동 패턴</h2>
       <p class="help-text chart-caption">
-        Simplified demo chart. When real sensor data is connected, this view will reflect actual per-day vibration counts and drift.
+        데모 기준 그래프입니다. 실제 센서와 연동되면 일자별 진동 횟수와 휨 변위를 그대로 반영합니다.
       </p>
       <div class="mini-chart">
         <div id="mini-chart-bars" class="mini-chart-bars"></div>

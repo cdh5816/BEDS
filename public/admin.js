@@ -22,11 +22,97 @@ const searchAddressBtn = document.getElementById('search-address');
 const geocodeResultsEl = document.getElementById('geocode-results');
 
 let sites = [];
+let adminMap;
+let adminMarkersLayer;
+
+function setupLogout() {
+  const btn = document.getElementById('logout-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    localStorage.removeItem('beds_logged_in');
+    window.location.href = 'index.html';
+  });
+}
+
+function ensureLoggedIn() {
+  const loggedIn = localStorage.getItem('beds_logged_in') === '1';
+  if (!loggedIn) {
+    window.location.href = 'index.html';
+  }
+}
+
+function initAdminMap() {
+  const mapEl = document.getElementById('admin-map');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  adminMap = L.map('admin-map', {
+    zoomControl: false
+  }).setView([37.5665, 126.9780], 11);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: ''
+  }).addTo(adminMap);
+
+  adminMarkersLayer = L.layerGroup().addTo(adminMap);
+}
+
+function renderAdminMap() {
+  if (!adminMap || !adminMarkersLayer) return;
+
+  adminMarkersLayer.clearLayers();
+  const coordsSites = sites.filter(
+    (s) => s.latitude && s.longitude && Number.isFinite(Number(s.latitude)) && Number.isFinite(Number(s.longitude))
+  );
+
+  if (!coordsSites.length) {
+    adminMap.setView([37.5665, 126.9780], 11);
+    return;
+  }
+
+  const bounds = [];
+  coordsSites.forEach((site) => {
+    const lat = Number(site.latitude);
+    const lon = Number(site.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+    let color = '#22c55e';
+    if (site.status === 'CAUTION') color = '#fbbf24';
+    else if (site.status === 'ALERT') color = '#f97373';
+
+    const marker = L.circleMarker([lat, lon], {
+      radius: 6,
+      color,
+      fillColor: color,
+      fillOpacity: 0.9
+    }).addTo(adminMarkersLayer);
+
+    marker.bindPopup(site.name);
+    bounds.push([lat, lon]);
+  });
+
+  if (bounds.length === 1) {
+    adminMap.setView(bounds[0], 14);
+  } else {
+    adminMap.fitBounds(bounds, { padding: [20, 20] });
+  }
+}
+
+function focusSiteOnMap(site) {
+  if (!adminMap || !site || !site.latitude || !site.longitude) return;
+  const lat = Number(site.latitude);
+  const lon = Number(site.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+  adminMap.setView([lat, lon], 15);
+}
+
+// ---- 데이터 로딩 및 렌더링 ----
 
 async function fetchSites() {
   const res = await fetch(`${API_BASE}/api/sites`);
   sites = await res.json();
   renderSites();
+  renderAdminMap();
 }
 
 function renderSummary() {
@@ -38,10 +124,10 @@ function renderSummary() {
   siteSummaryEl.innerHTML = '';
 
   const items = [
-    { label: 'All', value: total, className: '' },
-    { label: 'Safe', value: safe, className: 'site-summary-safe' },
-    { label: 'Caution', value: caution, className: 'site-summary-caution' },
-    { label: 'Alert', value: alert, className: 'site-summary-alert' }
+    { label: '전체', value: total, className: '' },
+    { label: '안전', value: safe, className: 'site-summary-safe' },
+    { label: '주의', value: caution, className: 'site-summary-caution' },
+    { label: '경고', value: alert, className: 'site-summary-alert' }
   ];
 
   items.forEach((item) => {
@@ -79,7 +165,7 @@ function renderSites() {
   if (filtered.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
-    empty.textContent = 'No sites found.';
+    empty.textContent = '등록된 현장이 없습니다.';
     siteListEl.appendChild(empty);
     return;
   }
@@ -87,6 +173,10 @@ function renderSites() {
   filtered.forEach((site) => {
     const card = document.createElement('article');
     card.className = 'site-card';
+
+    card.addEventListener('click', () => {
+      focusSiteOnMap(site);
+    });
 
     const main = document.createElement('div');
     main.className = 'site-main';
@@ -111,23 +201,23 @@ function renderSites() {
 
     const sizePill = document.createElement('span');
     sizePill.className = 'meta-pill';
-    sizePill.innerHTML = `<strong>Size</strong>${site.buildingSize || '-'}`;
+    sizePill.innerHTML = `<strong>규모</strong>${site.buildingSize || '-'}`;
     meta.appendChild(sizePill);
 
     const yearPill = document.createElement('span');
     yearPill.className = 'meta-pill';
-    yearPill.innerHTML = `<strong>Year</strong>${site.buildingYear || '-'}`;
+    yearPill.innerHTML = `<strong>준공</strong>${site.buildingYear || '-'}`;
     meta.appendChild(yearPill);
 
     const sensorPill = document.createElement('span');
     sensorPill.className = 'meta-pill';
-    sensorPill.innerHTML = `<strong>Sensors</strong>${site.sensorCount ?? 0}`;
+    sensorPill.innerHTML = `<strong>센서</strong>${site.sensorCount ?? 0}`;
     meta.appendChild(sensorPill);
 
     if (site.notes) {
       const notesPill = document.createElement('span');
       notesPill.className = 'meta-pill';
-      notesPill.innerHTML = `<strong>Notes</strong>${site.notes}`;
+      notesPill.innerHTML = `<strong>메모</strong>${site.notes}`;
       meta.appendChild(notesPill);
     }
 
@@ -153,9 +243,9 @@ function renderSites() {
     const label = document.createElement('span');
     label.className = 'status-label-text';
     let labelText = '';
-    if (site.status === 'SAFE') labelText = 'SAFE';
-    else if (site.status === 'CAUTION') labelText = 'CAUTION';
-    else labelText = 'ALERT';
+    if (site.status === 'SAFE') labelText = '안전';
+    else if (site.status === 'CAUTION') labelText = '주의';
+    else labelText = '경고';
     label.textContent = labelText;
     badge.appendChild(label);
 
@@ -168,9 +258,9 @@ function renderSites() {
     ['SAFE', 'CAUTION', 'ALERT'].forEach((value) => {
       const opt = document.createElement('option');
       opt.value = value;
-      if (value === 'SAFE') opt.textContent = 'Safe (green)';
-      else if (value === 'CAUTION') opt.textContent = 'Caution (yellow)';
-      else opt.textContent = 'Alert (red)';
+      if (value === 'SAFE') opt.textContent = '안전 (초록)';
+      else if (value === 'CAUTION') opt.textContent = '주의 (노랑)';
+      else opt.textContent = '경고 (빨강)';
 
       if (value === site.status) opt.selected = true;
       select.appendChild(opt);
@@ -208,7 +298,7 @@ function renderSites() {
 
     const noteInput = document.createElement('input');
     noteInput.type = 'text';
-    noteInput.placeholder = 'note';
+    noteInput.placeholder = '메모';
     noteInput.className = 'measure-input-note';
 
     measureRow.appendChild(shakesInput);
@@ -224,9 +314,10 @@ function renderSites() {
     saveBtn.type = 'button';
     saveBtn.className = 'btn btn--secondary';
     saveBtn.style.fontSize = '11px';
-    saveBtn.textContent = 'Add measurement';
+    saveBtn.textContent = '측정값 추가';
 
-    saveBtn.addEventListener('click', async () => {
+    saveBtn.addEventListener('click', async (event) => {
+      event.stopPropagation();
       const payload = {
         shakes: shakesInput.value ? Number(shakesInput.value) : 0,
         maxDrift: driftInput.value ? Number(driftInput.value) : 0,
@@ -242,7 +333,7 @@ function renderSites() {
         });
 
         if (!res.ok) {
-          alert('Failed to add measurement.');
+          alert('측정값 추가에 실패했습니다.');
           return;
         }
 
@@ -252,7 +343,7 @@ function renderSites() {
         noteInput.value = '';
       } catch (err) {
         console.error(err);
-        alert('Error while adding measurement.');
+        alert('측정값 추가 중 오류가 발생했습니다.');
       }
     });
 
@@ -267,7 +358,7 @@ function renderSites() {
     metaCol.className = 'site-meta-time';
     const created = new Date(site.createdAt || Date.now());
     const updated = new Date(site.updatedAt || site.createdAt || Date.now());
-    metaCol.textContent = `Created: ${created.toLocaleDateString('ko-KR')} · Updated: ${updated.toLocaleString(
+    metaCol.textContent = `생성: ${created.toLocaleDateString('ko-KR')} · 수정: ${updated.toLocaleString(
       'ko-KR'
     )}`;
 
@@ -288,7 +379,7 @@ async function updateStatus(id, status) {
     });
 
     if (!res.ok) {
-      alert('Failed to update status.');
+      alert('상태 업데이트에 실패했습니다.');
       return;
     }
 
@@ -297,10 +388,11 @@ async function updateStatus(id, status) {
     if (idx !== -1) {
       sites[idx] = updated;
       renderSites();
+      renderAdminMap();
     }
   } catch (err) {
     console.error(err);
-    alert('Error while updating status.');
+    alert('상태 업데이트 중 오류가 발생했습니다.');
   }
 }
 
@@ -319,7 +411,7 @@ async function handleSubmit(e) {
   };
 
   if (!payload.name || !payload.address) {
-    alert('Site name and address are required.');
+    alert('현장명과 주소는 필수입니다.');
     return;
   }
 
@@ -332,13 +424,14 @@ async function handleSubmit(e) {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.message || 'Failed to create site.');
+      alert(data.message || '현장 생성에 실패했습니다.');
       return;
     }
 
     const created = await res.json();
     sites.push(created);
     renderSites();
+    renderAdminMap();
 
     formEl.reset();
     latitudeEl.value = '';
@@ -347,14 +440,14 @@ async function handleSubmit(e) {
     geocodeResultsEl.style.display = 'none';
   } catch (err) {
     console.error(err);
-    alert('Error while creating site.');
+    alert('현장 생성 중 오류가 발생했습니다.');
   }
 }
 
 async function searchAddress() {
   const query = addressEl.value.trim();
   if (!query) {
-    alert('Enter address before searching.');
+    alert('주소를 입력한 후 검색을 눌러주세요.');
     return;
   }
 
@@ -397,6 +490,9 @@ async function searchAddress() {
 }
 
 function initAdmin() {
+  ensureLoggedIn();
+  setupLogout();
+  initAdminMap();
   fetchSites();
 
   statusFilterEl.addEventListener('change', renderSites);
