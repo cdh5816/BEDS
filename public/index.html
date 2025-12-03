@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BEDS - Building Earthquake Detection System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="BEDS - Building Earthquake Detection System" />
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="beds-header">
+        <div class="beds-logo">BEDS</div>
+        <div class="beds-header-right">
+          <div id="beds-admin-label" class="beds-admin-label hidden">
+            <span id="beds-admin-name"></span>
+          </div>
+          <button id="beds-login-button" class="beds-button primary">
+            로그인
+          </button>
+          <button id="beds-logout-button" class="beds-button subtle hidden">
+            로그아웃
+          </button>
+        </div>
+      </header>
+
+      <main class="beds-main">
+        <section class="beds-hero">
+          <div class="beds-hero-text">
+            <h1>Building Earthquake Detection System</h1>
+            <p>
+              BEDS는 건물에 설치된 지진 감지 센서를 통해<br />
+              실시간으로 진동 상태를 모니터링하고, 이상 징후를 빠르게 알려주는
+              웹 서비스입니다.
+            </p>
+            <p class="beds-hero-sub">
+              아래 지도에서 BEDS가 모니터링 중인 건물을 누구나 확인할 수 있습니다.
+            </p>
+          </div>
+        </section>
+
+        <section class="beds-map-section">
+          <div id="beds-map"></div>
+        </section>
+
+        <section id="beds-admin-panel" class="beds-admin-panel hidden">
+          <h2>관리자 패널 - 건물 등록</h2>
+          <p class="admin-hint">
+            위도/경도는 네이버/카카오 지도에서 좌표를 확인해 입력하거나,
+            나중에 자동 변환 기능을 붙일 수 있습니다.
+          </p>
+          <form id="beds-building-form" class="beds-form">
+            <div class="beds-form-row">
+              <label for="building-name">건물 이름</label>
+              <input id="building-name" type="text" required />
+            </div>
+            <div class="beds-form-row">
+              <label for="building-address">주소</label>
+              <input id="building-address" type="text" required />
+            </div>
+            <div class="beds-form-row-inline">
+              <div>
+                <label for="building-lat">위도 (lat)</label>
+                <input id="building-lat" type="number" step="0.000001" required />
+              </div>
+              <div>
+                <label for="building-lng">경도 (lng)</label>
+                <input id="building-lng" type="number" step="0.000001" required />
+              </div>
+            </div>
+            <button type="submit" class="beds-button primary full">
+              건물 등록
+            </button>
+          </form>
+        </section>
+      </main>
+
+      <!-- Login Modal -->
+      <div id="beds-login-modal" class="beds-modal hidden">
+        <div class="beds-modal-backdrop"></div>
+        <div class="beds-modal-content">
+          <h2>관리자 로그인</h2>
+          <form id="beds-login-form" class="beds-form">
+            <div class="beds-form-row">
+              <label for="login-email">이메일</label>
+              <input
+                id="login-email"
+                type="email"
+                placeholder="admin@beds.local"
+                required
+              />
+            </div>
+            <div class="beds-form-row">
+              <label for="login-password">비밀번호</label>
+              <input
+                id="login-password"
+                type="password"
+                placeholder="비밀번호를 입력하세요"
+                required
+              />
+            </div>
+            <button type="submit" class="beds-button primary full">
+              로그인
+            </button>
+          </form>
+          <p class="beds-modal-hint">
+            기본 계정: <code>admin@beds.local / bedsadmin123!</code><br />
+            로그인 후 BEDS가 모니터링할 건물 정보를 등록할 수 있습니다.
+          </p>
+          <button id="beds-modal-close" class="beds-button subtle full">
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

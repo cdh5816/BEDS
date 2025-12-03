@@ -1,0 +1,310 @@
+/* © AIRX (individual business) - All rights reserved. */
+/* BEDS (Building Earthquake Detection System) - main styles */
+
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap');
+
+:root {
+  --beds-bg: #020617;
+  --beds-header-bg: #022c22;
+  --beds-primary: #047857;
+  --beds-primary-hover: #059669;
+  --beds-border: #1f2933;
+  --beds-text: #e5e7eb;
+  --beds-text-muted: #9ca3af;
+  --beds-danger: #ef4444;
+  --beds-card-bg: #020617;
+  --beds-shadow-soft: 0 18px 35px rgba(0, 0, 0, 0.5);
+  --beds-radius-lg: 16px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, system-ui,
+    'Segoe UI', sans-serif;
+  background-color: var(--beds-bg);
+  color: var(--beds-text);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.beds-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #022c22, #052e16);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.8);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.beds-logo {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  color: #bbf7d0;
+}
+
+.beds-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.beds-admin-label {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  font-size: 12px;
+  color: #a7f3d0;
+}
+
+.beds-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  gap: 16px;
+}
+
+.beds-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.beds-hero-text h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.beds-hero-text p {
+  margin: 4px 0;
+  color: var(--beds-text-muted);
+  line-height: 1.5;
+}
+
+.beds-hero-sub {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.beds-map-section {
+  margin-top: 10px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--beds-shadow-soft);
+  border: 1px solid rgba(15, 23, 42, 0.9);
+}
+
+#beds-map {
+  width: 100%;
+  height: 480px;
+}
+
+/* Buttons */
+.beds-button {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+  font-weight: 500;
+}
+
+.beds-button.primary {
+  background: linear-gradient(135deg, var(--beds-primary), var(--beds-primary-hover));
+  color: white;
+  box-shadow: 0 10px 22px rgba(4, 120, 87, 0.6);
+}
+
+.beds-button.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(4, 120, 87, 0.85);
+}
+
+.beds-button.subtle {
+  background: transparent;
+  border-color: rgba(148, 163, 184, 0.6);
+  color: var(--beds-text-muted);
+}
+
+.beds-button.subtle:hover {
+  border-color: rgba(148, 163, 184, 1);
+  color: var(--beds-text);
+}
+
+.beds-button.full {
+  width: 100%;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Admin panel */
+.beds-admin-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--beds-radius-lg);
+  background: radial-gradient(circle at top left, #052e16 0, #020617 55%);
+  border: 1px solid rgba(15, 23, 42, 0.9);
+  box-shadow: var(--beds-shadow-soft);
+}
+
+.beds-admin-panel h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.admin-hint {
+  margin: 2px 0 12px;
+  font-size: 12px;
+  color: var(--beds-text-muted);
+}
+
+.beds-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.beds-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.beds-form-row-inline {
+  display: flex;
+  gap: 10px;
+}
+
+.beds-form-row-inline > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.beds-form label {
+  font-size: 13px;
+  color: var(--beds-text-muted);
+}
+
+.beds-form input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background-color: rgba(15, 23, 42, 0.9);
+  color: var(--beds-text);
+  font-size: 13px;
+}
+
+.beds-form input:focus {
+  outline: none;
+  border-color: var(--beds-primary);
+  box-shadow: 0 0 0 1px rgba(4, 120, 87, 0.4);
+}
+
+/* Modal */
+.beds-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.beds-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.beds-modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  background: radial-gradient(circle at top, #052e16 0, #020617 55%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: var(--beds-shadow-soft);
+  border: 1px solid rgba(15, 23, 42, 0.9);
+  z-index: 1;
+}
+
+.beds-modal-content h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.beds-modal-hint {
+  margin: 8px 0 8px;
+  font-size: 12px;
+  color: var(--beds-text-muted);
+}
+
+.beds-modal-hint code {
+  background: rgba(15, 23, 42, 0.9);
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+/* Leaflet overrides */
+.leaflet-container {
+  background: #020617;
+}
+
+.leaflet-control-zoom a {
+  background-color: rgba(15, 23, 42, 0.95);
+  color: var(--beds-text);
+  border-radius: 8px !important;
+  border: 1px solid rgba(31, 41, 55, 0.9);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .beds-main {
+    padding: 14px;
+  }
+
+  .beds-hero-text h1 {
+    font-size: 20px;
+  }
+
+  #beds-map {
+    height: 400px;
+  }
+
+  .beds-form-row-inline {
+    flex-direction: column;
+  }
+}
