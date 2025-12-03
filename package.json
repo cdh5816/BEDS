@@ -1,6 +1,6 @@
 {
   "name": "beds-v3",
-  "version": "1.2.0",
+  "version": "1.3.1",
   "description": "Building Earthquake Detection System - Web dashboard & API (BEDS_v3)",
   "main": "server.js",
   "scripts": {

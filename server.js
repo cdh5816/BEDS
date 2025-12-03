@@ -6,6 +6,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
 const cors = require('cors');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -35,41 +36,47 @@ async function saveSites(sites) {
   await fs.writeFile(SITES_FILE, JSON.stringify(sites, null, 2), 'utf-8');
 }
 
-// 주소 검색 (OpenStreetMap / Nominatim 사용, 카카오 X)
+// ----- GEOCODING (server-side via Nominatim) -----
 app.get('/api/geocode', async (req, res) => {
-  const q = (req.query.q || '').trim();
-  if (!q) {
-    return res.status(400).json({ message: '검색어(q)가 필요합니다.' });
+  const query = (req.query.q || '').trim();
+  if (!query) {
+    return res.status(400).json({ message: 'Missing query.' });
   }
 
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
+    query
+  )}`;
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'AIRX-BEDS/1.0 (contact: beds@airx.local)'
+  https
+    .get(
+      url,
+      {
+        headers: {
+          'User-Agent': 'AIRX-BEDS/1.0 (contact: airx)',
+          Accept: 'application/json'
+        }
+      },
+      (resp) => {
+        let data = '';
+        resp.on('data', (chunk) => (data += chunk));
+        resp.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            res.json(parsed);
+          } catch (err) {
+            console.error('Geocode parse error:', err);
+            res.status(500).json({ message: 'Failed to parse geocoding response.' });
+          }
+        });
       }
+    )
+    .on('error', (err) => {
+      console.error('Geocode request error:', err);
+      res.status(500).json({ message: 'Geocoding request failed.' });
     });
-
-    if (!response.ok) {
-      console.error('Geocode error status:', response.status);
-      return res.status(502).json({ message: '주소 검색 서버 오류가 발생했습니다.' });
-    }
-
-    const data = await response.json();
-
-    const results = data.map((item) => ({
-      address: item.display_name,
-      latitude: item.lat,
-      longitude: item.lon
-    }));
-
-    res.json(results);
-  } catch (err) {
-    console.error('Error in /api/geocode:', err);
-    res.status(500).json({ message: '주소 검색 처리 중 오류가 발생했습니다.' });
-  }
 });
+
+// ----- SITE CRUD & METRICS -----
 
 // API: Get all sites
 app.get('/api/sites', async (req, res) => {
@@ -92,7 +99,7 @@ app.post('/api/sites', async (req, res) => {
     } = req.body;
 
     if (!name || !address) {
-      return res.status(400).json({ message: '현장 이름과 주소는 필수입니다.' });
+      return res.status(400).json({ message: 'Site name and address are required.' });
     }
 
     const sites = await loadSites();
@@ -110,7 +117,8 @@ app.post('/api/sites', async (req, res) => {
       notes: notes || '',
       status: 'SAFE', // SAFE | CAUTION | ALERT
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      measurements: [] // 관리자 수기 입력 데이터
     };
 
     sites.push(newSite);
@@ -119,7 +127,7 @@ app.post('/api/sites', async (req, res) => {
     res.status(201).json(newSite);
   } catch (err) {
     console.error('Error creating site:', err);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ message: 'Server error.' });
   }
 });
 
@@ -131,13 +139,13 @@ app.patch('/api/sites/:id/status', async (req, res) => {
 
     const allowed = ['SAFE', 'CAUTION', 'ALERT'];
     if (!allowed.includes(status)) {
-      return res.status(400).json({ message: '허용되지 않는 상태 값입니다.' });
+      return res.status(400).json({ message: 'Invalid status value.' });
     }
 
     const sites = await loadSites();
     const idx = sites.findIndex((s) => s.id === id);
     if (idx === -1) {
-      return res.status(404).json({ message: '현장을 찾을 수 없습니다.' });
+      return res.status(404).json({ message: 'Site not found.' });
     }
 
     sites[idx].status = status;
@@ -147,21 +155,123 @@ app.patch('/api/sites/:id/status', async (req, res) => {
     res.json(sites[idx]);
   } catch (err) {
     console.error('Error updating status:', err);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ message: 'Server error.' });
   }
 });
 
-// API: 고객용 지진·진동 메트릭 (현재는 데모 데이터 생성)
-// TODO: 실제 센서 DB 연동 시 이 부분 교체
+// API: Add manual measurement for a site (관리자 수기 업로드용)
+app.post('/api/sites/:id/measurements', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { shakes, maxDrift, maxMagnitude, note } = req.body;
+
+    const sites = await loadSites();
+    const idx = sites.findIndex((s) => s.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ message: 'Site not found.' });
+    }
+
+    const now = new Date();
+    const measurement = {
+      id: now.getTime().toString(),
+      timestamp: now.toISOString(),
+      shakes: Number.isFinite(Number(shakes)) ? Number(shakes) : 0,
+      maxDrift: Number.isFinite(Number(maxDrift)) ? Number(maxDrift) : 0,
+      maxMagnitude: Number.isFinite(Number(maxMagnitude)) ? Number(maxMagnitude) : 0,
+      note: note || ''
+    };
+
+    if (!Array.isArray(sites[idx].measurements)) {
+      sites[idx].measurements = [];
+    }
+    sites[idx].measurements.push(measurement);
+    sites[idx].updatedAt = now.toISOString();
+
+    await saveSites(sites);
+
+    res.status(201).json(measurement);
+  } catch (err) {
+    console.error('Error adding measurement:', err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// API: 고객용 메트릭 조회
 app.get('/api/sites/:id/metrics', async (req, res) => {
   try {
     const { id } = req.params;
     const sites = await loadSites();
     const site = sites.find((s) => s.id === id);
     if (!site) {
-      return res.status(404).json({ message: '현장을 찾을 수 없습니다.' });
+      return res.status(404).json({ message: 'Site not found.' });
     }
 
+    const measurements = Array.isArray(site.measurements) ? site.measurements : [];
+
+    // 측정치가 있으면 실제 데이터 기반
+    if (measurements.length > 0) {
+      const byDay = new Map();
+
+      for (const m of measurements) {
+        const ts = m.timestamp ? new Date(m.timestamp) : new Date();
+        const dayKey = ts.toISOString().slice(0, 10); // YYYY-MM-DD
+
+        if (!byDay.has(dayKey)) {
+          byDay.set(dayKey, {
+            shakes: 0,
+            maxDrift: 0,
+            maxMagnitude: 0
+          });
+        }
+
+        const bucket = byDay.get(dayKey);
+        bucket.shakes += Number.isFinite(m.shakes) ? m.shakes : 0;
+        bucket.maxDrift = Math.max(bucket.maxDrift, Number.isFinite(m.maxDrift) ? m.maxDrift : 0);
+        bucket.maxMagnitude = Math.max(
+          bucket.maxMagnitude,
+          Number.isFinite(m.maxMagnitude) ? m.maxMagnitude : 0
+        );
+      }
+
+      const sortedDays = Array.from(byDay.keys()).sort();
+      const last7 = sortedDays.slice(-7);
+      const labels = last7.map((d, idx) => (idx === last7.length - 1 ? '오늘' : d.slice(5)));
+      const shakesArr = last7.map((d) => byDay.get(d).shakes);
+      const driftArr = last7.map((d) => Number(byDay.get(d).maxDrift.toFixed(2)));
+
+      const todayKey = sortedDays[sortedDays.length - 1];
+      const todayBucket = byDay.get(todayKey);
+
+      const alertThreshold = 5;
+      const alertCount7d = shakesArr.filter((v) => v >= alertThreshold).length;
+      const alertCount30d = alertCount7d * 2;
+
+      const metrics = {
+        siteId: site.id,
+        name: site.name,
+        status: site.status || 'SAFE',
+        last24h: {
+          eventCount: todayBucket.shakes,
+          maxMagnitude: Number(todayBucket.maxMagnitude.toFixed(3)),
+          maxDrift: Number(todayBucket.maxDrift.toFixed(2)),
+          alertCount: todayBucket.shakes >= alertThreshold ? 1 : 0
+        },
+        last7d: {
+          labels,
+          shakes: shakesArr,
+          drift: driftArr,
+          alertCount: alertCount7d
+        },
+        last30d: {
+          alertCount: alertCount30d
+        },
+        updatedAt: new Date().toISOString()
+      };
+
+      return res.json(metrics);
+    }
+
+    // --- 데모 데이터 (측정치 없을 때) ---
     const status = site.status || 'SAFE';
     let minShakes, maxShakes, maxDrift, maxMag, alertThreshold;
 
@@ -202,7 +312,7 @@ app.get('/api/sites/:id/metrics', async (req, res) => {
     const maxMagnitude = Number(randBetween(maxMag * 0.3, maxMag).toFixed(3));
     const maxDriftVal = Math.max(...dailyDrift);
     const alertCount7d = dailyShakes.filter((v) => v >= alertThreshold).length;
-    const alertCount30d = alertCount7d * 3; // 단순 데모용 배율
+    const alertCount30d = alertCount7d * 3;
 
     const metrics = {
       siteId: site.id,
@@ -215,7 +325,7 @@ app.get('/api/sites/:id/metrics', async (req, res) => {
         alertCount: eventCount >= alertThreshold ? 1 : 0
       },
       last7d: {
-        labels: ['-6일', '-5일', '-4일', '-3일', '-2일', '-1일', '오늘'],
+        labels: ['-6d', '-5d', '-4d', '-3d', '-2d', '-1d', 'Today'],
         shakes: dailyShakes,
         drift: dailyDrift,
         alertCount: alertCount7d
@@ -229,7 +339,7 @@ app.get('/api/sites/:id/metrics', async (req, res) => {
     res.json(metrics);
   } catch (err) {
     console.error('Error in /api/sites/:id/metrics:', err);
-    res.status(500).json({ message: '메트릭 조회 중 오류가 발생했습니다.' });
+    res.status(500).json({ message: 'Error loading metrics.' });
   }
 });
 
@@ -238,7 +348,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', env: process.env.NODE_ENV || 'development' });
 });
 
-// Fallback: serve index.html for root
+// Fallback: serve landing page
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
