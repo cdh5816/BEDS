@@ -1,17 +1,16 @@
 {
-  "name": "beds-v2",
-  "version": "2.1.0",
-  "description": "BEDS v2 - Building Earthquake Detection System (© AIRX individual business)",
+  "name": "beds-v3",
+  "version": "1.2.0",
+  "description": "Building Earthquake Detection System - Web dashboard & API (BEDS_v3)",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js"
   },
+  "author": "AIRX (individual business)",
+  "license": "Proprietary - © AIRX (individual business)",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.0",
-    "express": "^4.19.0",
-    "jsonwebtoken": "^9.0.2",
-    "uuid": "^9.0.1"
+    "express": "^4.21.0"
   }
 }
