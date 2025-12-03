@@ -14,22 +14,23 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="admin-body bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
   <header class="app-header">
     <div>
       <h1 class="app-title">BEDS 관리자</h1>
-      <p class="subtitle">현장 등록, 상태 관리, 계측 데이터 및 고객 계정 관리</p>
+      <p class="subtitle">현장 등록, 상태 관리, 계측 데이터 관리</p>
     </div>
     <nav class="app-nav">
       <a href="index.html" class="nav-link">메인</a>
       <a href="client.html" class="nav-link" id="nav-monitor">모니터링</a>
-      <span class="nav-link nav-link--active">관리자</span>
-      <button id="logout-btn" class="btn btn--secondary btn--nav">로그아웃</button>
+      <a href="accounts.html" class="nav-link">고객 계정</a>
+      <span class="nav-link nav-link-active">현장 관리</span>
+      <button id="logout-btn" class="btn btn-secondary btn-nav">로그아웃</button>
     </nav>
   </header>
 
   <main class="layout">
-    <section class="panel panel--sites">
+    <section class="panel panel-sites">
       <div class="panel-header">
         <h2>등록된 현장</h2>
         <div class="filters">
@@ -37,7 +38,7 @@
             상태:
             <select id="status-filter">
               <option value="ALL">전체</option>
-              <option value="SAFE">안전</지>
+              <option value="SAFE">안전</option>
               <option value="CAUTION">주의</option>
               <option value="ALERT">경고</option>
             </select>
@@ -50,11 +51,11 @@
       </div>
 
       <div id="site-summary" class="site-summary"></div>
-      <div id="admin-map" class="site-map admin-map"></div>
+      <div id="admin-map" class="site-map rounded-2xl overflow-hidden border border-slate-800"></div>
       <div id="site-list" class="site-list"></div>
     </section>
 
-    <section class="panel panel--form">
+    <section class="panel panel-form">
       <h2>새 현장 등록</h2>
       <form id="site-form">
         <div class="form-row">
@@ -62,12 +63,12 @@
           <input type="text" id="name" required placeholder="예: 서울역 타워 A동" />
         </div>
 
-        <div class="form-row form-row--inline">
+        <div class="form-row form-row-inline">
           <div class="form-col">
             <label for="address">주소<span class="required">*</span></label>
             <input type="text" id="address" required placeholder="주소 입력 후 검색 버튼 클릭" />
           </div>
-          <button type="button" id="search-address" class="btn btn--secondary">주소 검색</button>
+          <button type="button" id="search-address" class="btn btn-secondary">주소 검색</button>
         </div>
 
         <div id="geocode-results" class="geocode-results"></div>
@@ -95,30 +96,10 @@
           <textarea id="notes" rows="3" placeholder="예: 병원동, 내진설계 적용, B동만 계측 등"></textarea>
         </div>
 
-        <button type="submit" class="btn btn--primary">현장 생성</button>
+        <button type="submit" class="btn btn-primary">현장 생성</button>
         <p class="help-text">
-          주소 검색은 전세계 주소를 지원하는 무료 지오코더를 사용하며, 위·경도는 내부 지도 표시용으로만 사용됩니다.
+          주소 검색은 카카오가 아닌 오픈스트리트맵 기반 무료 지오코더를 사용하며, 위·경도는 내부 지도 표시용으로만 사용됩니다.
         </p>
-      </form>
-
-      <hr class="section-divider" />
-
-      <h2>고객 계정 관리</h2>
-      <form id="user-form">
-        <div class="form-row">
-          <label for="user-username">고객 ID</label>
-          <input id="user-username" type="text" placeholder="고객 로그인 ID" />
-        </div>
-        <div class="form-row">
-          <label for="user-password">초기 비밀번호</label>
-          <input id="user-password" type="password" placeholder="임시 비밀번호" />
-        </div>
-        <div class="form-row">
-          <label for="user-sites">접근 가능한 현장</label>
-          <select id="user-sites" multiple></select>
-          <p class="help-text">Ctrl/Command 키로 여러 개 선택할 수 있습니다.</p>
-        </div>
-        <button type="submit" class="btn btn--secondary">고객 계정 생성</button>
       </form>
     </section>
   </main>

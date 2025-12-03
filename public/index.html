@@ -17,102 +17,109 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="landing-body bg-slate-950 text-slate-100 min-h-screen">
-  <div class="landing-wrapper">
-    <header class="landing-header flex items-center justify-between px-6 pt-4 pb-2">
-      <div class="landing-brand">
-        <div class="brand-mark text-xs tracking-[0.35em] uppercase text-slate-400">
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div class="max-w-6xl mx-auto flex flex-col min-h-screen">
+    <header class="flex items-center justify-between px-6 pt-4 pb-2 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+      <div>
+        <div class="text-2xl tracking-[0.3em] uppercase text-slate-50 font-semibold">
           BEDS
         </div>
-        <div class="brand-script italic text-[12px] tracking-[0.22em] text-slate-300">
+        <div class="font-['Playfair_Display'] italic text-[9px] tracking-[0.35em] text-slate-400 mt-1">
           Building Earthquake Detection System
         </div>
       </div>
-      <div class="landing-actions flex items-center gap-3">
-        <button id="login-toggle" class="btn btn--secondary btn--nav text-xs">
+      <div class="flex items-center gap-3 relative">
+        <button id="landing-dashboard" class="btn btn-secondary text-xs hidden">
+          Dashboard
+        </button>
+        <button id="landing-logout" class="btn btn-secondary text-xs hidden">
+          Logout
+        </button>
+        <button id="login-toggle" class="btn btn-primary text-xs">
           Login
         </button>
-      </div>
-      <div id="login-panel" class="login-panel">
-        <form id="login-form" class="login-panel-form">
-          <div class="form-row">
-            <label for="login-id">ID</label>
-            <input id="login-id" type="text" placeholder="operator" autocomplete="username" />
-          </div>
-          <div class="form-row">
-            <label for="login-password">Password</label>
-            <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" />
-          </div>
-          <button type="submit" class="btn btn--primary btn--full">Sign in</button>
-          <p id="login-error" class="login-error" aria-live="polite"></p>
-          <p class="login-hint">
-            Demo: <strong>operator / beds2025!</strong><br />
-            실제 배포 시 운영사 전용 계정으로 교체됩니다.
-          </p>
-        </form>
+
+        <div id="login-panel" class="login-panel">
+          <form id="login-form" class="login-panel-form">
+            <div class="form-row">
+              <label for="login-id">ID</label>
+              <input id="login-id" type="text" placeholder="operator" autocomplete="username" />
+            </div>
+            <div class="form-row">
+              <label for="login-password">Password</label>
+              <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Sign in</button>
+            <p id="login-error" class="login-error" aria-live="polite"></p>
+            <p class="login-hint">
+              Demo: <strong>operator / beds2025!</strong><br />
+              실제 배포 시 운영사 전용 계정으로 교체됩니다.
+            </p>
+          </form>
+        </div>
       </div>
     </header>
 
-    <main class="landing-main px-6 pb-6 flex flex-col gap-4">
-      <section class="landing-grid gap-4">
-        <div class="landing-map-wrapper">
-          <div id="landing-map" class="landing-map"></div>
-          <div id="landing-site-list" class="landing-site-list"></div>
+    <main class="px-6 pb-6 flex flex-col gap-4 flex-1">
+      <section class="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 pt-4">
+        <div>
+          <div id="landing-map" class="rounded-2xl overflow-hidden border border-slate-800 h-[320px] lg:h-[420px]"></div>
+          <div id="landing-site-list" class="landing-site-list mt-3 text-xs text-slate-300"></div>
         </div>
-        <aside class="landing-side">
-          <div class="sample-card w-full">
+        <aside>
+          <div class="sample-card">
             <div class="sample-header">
-              <span class="sample-label">Sample asset</span>
-              <span class="sample-status sample-status--safe">
+              <span class="sample-label">대표 현장 예시</span>
+              <span class="sample-status sample-status-safe">
                 <span class="sample-status-dot"></span>
-                SAFE
+                안전
               </span>
             </div>
-            <h2 class="sample-title" id="sample-title">Seoul Financial Center</h2>
+            <h2 class="sample-title" id="sample-title">서울역 타워 A동</h2>
             <p class="sample-address" id="sample-address">
-              136, Sejong-daero, Jung-gu, Seoul, Republic of Korea
+              서울특별시 중구 세종대로 1XX
             </p>
 
             <div class="sample-kpis">
               <div class="sample-kpi">
-                <div class="sample-kpi-label">Events (24h)</div>
+                <div class="sample-kpi-label">최근 24시간 이벤트</div>
                 <div class="sample-kpi-value" id="sample-events">3</div>
               </div>
               <div class="sample-kpi">
-                <div class="sample-kpi-label">Max drift (today)</div>
+                <div class="sample-kpi-label">오늘 최대 휨 변위</div>
                 <div class="sample-kpi-value" id="sample-drift">0.42 mm</div>
               </div>
               <div class="sample-kpi">
-                <div class="sample-kpi-label">Alerts (30d)</div>
+                <div class="sample-kpi-label">최근 30일 경고</div>
                 <div class="sample-kpi-value" id="sample-alerts">0</div>
               </div>
             </div>
 
             <p class="sample-note" id="sample-note">
-              This is a static demo card. 실제 데이터는 로그인 후 Monitoring 화면에서
-              각 현장의 센서 측정값을 기반으로 실시간으로 표시됩니다.
+              실제 현장은 관리자 페이지에서 등록되며, 로그인 후 모니터링 화면에서 각 현장의 센서 데이터와 함께
+              실시간으로 표시됩니다.
             </p>
           </div>
         </aside>
       </section>
 
-      <section class="landing-text">
-        <h1 class="landing-tagline">
+      <section class="mt-2 mb-2">
+        <h1 class="text-xl md:text-2xl font-semibold text-slate-50">
           Real-time structural health monitoring for modern buildings.
         </h1>
-        <p class="landing-copy">
+        <p class="mt-2 text-sm md:text-base text-slate-300">
           BEDS continuously aggregates vibration and drift data from sensors installed across your assets,
           highlights abnormal patterns, and provides a concise risk overview for each building.
         </p>
-        <p class="landing-copy-kor">
+        <p class="mt-2 text-xs md:text-sm text-slate-400">
           BEDS는 건물에 설치된 센서에서 진동·휨 데이터를 수집하여 각 건물의 최근 지진·진동 이력을 한 눈에 보여주는
           서비스입니다. 로그인 후 현장별 상세 그래프와 지도를 확인할 수 있습니다.
         </p>
       </section>
     </main>
 
-    <footer class="app-footer landing-footer">
-      <span>BEDS · © AIRX (individual business)</span>
+    <footer class="app-footer">
+      <span class="text-[11px] text-slate-500">BEDS · © AIRX (individual business)</span>
     </footer>
   </div>
 
