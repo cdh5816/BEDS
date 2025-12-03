@@ -12,6 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="landing-body">
@@ -21,51 +23,80 @@
         <div class="brand-mark">BEDS</div>
         <div class="brand-script">Building Earthquake Detection System</div>
       </div>
+      <div class="landing-actions">
+        <button id="login-toggle" class="btn btn--ghost">Login</button>
+      </div>
+      <div id="login-panel" class="login-panel">
+        <form id="login-form" class="login-panel-form">
+          <div class="form-row">
+            <label for="login-id">ID</label>
+            <input id="login-id" type="text" placeholder="operator" autocomplete="username" />
+          </div>
+          <div class="form-row">
+            <label for="login-password">Password</label>
+            <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <button type="submit" class="btn btn--primary btn--full">Sign in</button>
+          <p id="login-error" class="login-error" aria-live="polite"></p>
+          <p class="login-hint">
+            Demo: <strong>operator / beds2025!</strong><br />
+            실제 배포 시 운영사 전용 계정으로 교체됩니다.
+          </p>
+        </form>
+      </div>
     </header>
 
     <main class="landing-main">
-      <section class="landing-hero">
-        <div class="hero-copy">
-          <h1 class="hero-title">
-            Real-time structural<br />
-            health monitoring<br />
-            for modern buildings.
-          </h1>
-          <p class="hero-subtitle">
-            High-resolution vibration tracking, drift analysis, and alerting — designed for mission-critical sites.
-          </p>
-          <p class="hero-subtitle-kor">
-            ※ 로그인 후 각 건물의 지진·진동 상태를 실시간으로 조회할 수 있습니다.
-          </p>
+      <section class="landing-grid">
+        <div class="landing-map-wrapper">
+          <div id="landing-map" class="landing-map"></div>
         </div>
-        <div class="hero-login-card">
-          <h2 class="login-title">Operator Login</h2>
-          <form id="login-form" class="login-form">
-            <div class="form-row">
-              <label for="login-id">ID</label>
-              <input id="login-id" type="text" placeholder="Enter operator ID" autocomplete="username" />
+        <aside class="landing-side">
+          <div class="sample-card">
+            <div class="sample-header">
+              <span class="sample-label">Sample asset</span>
+              <span class="sample-status sample-status--safe">
+                <span class="sample-status-dot"></span>
+                SAFE
+              </span>
             </div>
-            <div class="form-row">
-              <label for="login-password">Password</label>
-              <input id="login-password" type="password" placeholder="Enter password" autocomplete="current-password" />
+            <h2 class="sample-title">Seoul Financial Center</h2>
+            <p class="sample-address">136, Sejong-daero, Jung-gu, Seoul, Republic of Korea</p>
+
+            <div class="sample-kpis">
+              <div class="sample-kpi">
+                <div class="sample-kpi-label">Events (24h)</div>
+                <div class="sample-kpi-value">3</div>
+              </div>
+              <div class="sample-kpi">
+                <div class="sample-kpi-label">Max drift (today)</div>
+                <div class="sample-kpi-value">0.42 mm</div>
+              </div>
+              <div class="sample-kpi">
+                <div class="sample-kpi-label">Alerts (30d)</div>
+                <div class="sample-kpi-value">0</div>
+              </div>
             </div>
-            <button type="submit" class="btn btn--primary btn--full">Sign in</button>
-            <p class="login-hint">
-              Demo credentials are pre-configured in the system.<br />
-              로그인 정보는 실제 배포 시 관리자 페이지에서 별도로 설정합니다.
+
+            <p class="sample-note">
+              This is a static demo card. 실제 데이터는 로그인 후 Monitoring 화면에서
+              각 현장의 센서 측정값을 기반으로 실시간으로 표시됩니다.
             </p>
-            <p id="login-error" class="login-error" aria-live="polite"></p>
-          </form>
-        </div>
+          </div>
+        </aside>
       </section>
 
-      <section class="landing-footer-note">
-        <p>
-          BEDS aggregates sensor data across your building portfolio,
-          computes vibration frequency, drift, and alert statistics, and presents them in a clean, mobile-first dashboard.
+      <section class="landing-text">
+        <h1 class="landing-tagline">
+          Real-time structural health monitoring for modern buildings.
+        </h1>
+        <p class="landing-copy">
+          BEDS continuously aggregates vibration and drift data from sensors installed across your assets,
+          highlights abnormal patterns, and provides a concise risk overview for each building.
         </p>
-        <p class="landing-footer-note-kor">
-          이 화면은 소개 및 로그인 화면입니다. 로그인 후 건물 모니터링 페이지에서 각 현장의 진동 횟수, 휨 변위, 경고 횟수 등을 확인할 수 있습니다.
+        <p class="landing-copy-kor">
+          BEDS는 건물에 설치된 센서에서 진동·휨 데이터를 수집하여 각 건물의 최근 지진·진동 이력을 한 눈에 보여주는
+          서비스입니다. 로그인 후 현장별 상세 그래프와 지도를 확인할 수 있습니다.
         </p>
       </section>
     </main>
@@ -75,6 +106,8 @@
     </footer>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="landing.js"></script>
 </body>
 </html>
