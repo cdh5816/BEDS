@@ -4,22 +4,25 @@
 
 
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>BEDS_v3 - 고객용 건물 모니터링</title>
+  <title>BEDS · Building Monitoring</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="client-body">
   <header class="app-header">
     <div>
-      <h1>BEDS 건물 모니터링</h1>
-      <p class="subtitle">내 건물의 지진·진동 상태를 직관적으로 확인</p>
+      <h1 class="app-title">BEDS Monitoring</h1>
+      <p class="subtitle">Per-building vibration and drift overview.</p>
     </div>
     <nav class="app-nav">
-      <a href="index.html" class="nav-link">관리자</a>
-      <a href="client.html" class="nav-link nav-link--active">고객용 페이지</a>
+      <a href="index.html" class="nav-link">Landing</a>
+      <span class="nav-link nav-link--active">Monitoring</span>
+      <a href="admin.html" class="nav-link">Admin</a>
     </nav>
   </header>
 
@@ -27,42 +30,53 @@
     <section class="panel panel--client-main">
       <div class="client-header-row">
         <div class="client-site-select">
-          <label for="client-site-select">현장 선택</label>
+          <label for="client-site-select">Select site</label>
           <select id="client-site-select"></select>
         </div>
         <div id="client-status-badge" class="client-status-badge">
-          <!-- 상태 뱃지 동적 렌더링 -->
+          <!-- status badge -->
         </div>
       </div>
 
       <div class="metric-grid">
         <div class="kpi-card">
-          <div class="kpi-label">오늘 진동 감지 횟수</div>
+          <div class="kpi-label">Events (last 24h)</div>
           <div id="kpi-today-events" class="kpi-value">-</div>
-          <div class="kpi-sub">최근 24시간 기준</div>
+          <div class="kpi-sub">Number of detected vibration events</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">오늘 최대 진동 세기</div>
+          <div class="kpi-label">Max amplitude (today)</div>
           <div id="kpi-today-maxmag" class="kpi-value">-</div>
-          <div class="kpi-sub">상대 진폭 지표</div>
+          <div class="kpi-sub">Relative motion magnitude</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">오늘 최대 휨 변위</div>
+          <div class="kpi-label">Max drift (today)</div>
           <div id="kpi-today-maxdrift" class="kpi-value">-</div>
-          <div class="kpi-sub">mm 단위 (상대값)</div>
+          <div class="kpi-sub">mm (simplified demo metric)</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">최근 30일 경고 횟수</div>
+          <div class="kpi-label">Alerts (last 30d)</div>
           <div id="kpi-30d-alerts" class="kpi-value">-</div>
-          <div class="kpi-sub">경고 레벨 발생 횟수</div>
+          <div class="kpi-sub">High-level alert occurrences</div>
         </div>
+      </div>
+
+      <div class="map-wrapper">
+        <div class="map-header">
+          <span class="map-title">Site map</span>
+          <span class="map-subtitle">Sensor location based on registered address</span>
+        </div>
+        <div id="site-map" class="site-map"></div>
+        <p class="help-text map-help">
+          ※ 주소를 등록할 때 위·경도가 함께 저장되며, 이 지도는 해당 좌표를 기준으로 표시됩니다.
+        </p>
       </div>
     </section>
 
     <section class="panel panel--client-chart">
-      <h2>최근 7일 진동 패턴</h2>
+      <h2>7-day vibration pattern</h2>
       <p class="help-text chart-caption">
-        일별 진동 감지 횟수와 휨 변위를 단순화한 데모 그래프입니다. 실제 센서 연동 시 이 영역에 실시간 데이터가 표시됩니다.
+        Simplified demo chart. When real sensor data is connected, this view will reflect actual per-day vibration counts and drift.
       </p>
       <div class="mini-chart">
         <div id="mini-chart-bars" class="mini-chart-bars"></div>
@@ -72,9 +86,11 @@
   </main>
 
   <footer class="app-footer">
-    <span>BEDS_v3 · © AIRX (individual business)</span>
+    <span>BEDS · © AIRX (individual business)</span>
   </footer>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="client.js"></script>
 </body>
 </html>

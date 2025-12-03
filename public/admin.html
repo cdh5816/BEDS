@@ -1,0 +1,107 @@
+<!-- © AIRX (individual business). All rights reserved.
+     This codebase is owned by the user (AIRX) for the Building Earthquake Detection System project.
+-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BEDS · Admin Console</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="admin-body">
+  <header class="app-header">
+    <div>
+      <h1 class="app-title">BEDS Admin Console</h1>
+      <p class="subtitle">Register sites, manage status, and input measurement data.</p>
+    </div>
+    <nav class="app-nav">
+      <a href="index.html" class="nav-link">Landing</a>
+      <a href="client.html" class="nav-link">Monitoring</a>
+      <span class="nav-link nav-link--active">Admin</span>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="panel panel--sites">
+      <div class="panel-header">
+        <h2>Registered Sites</h2>
+        <div class="filters">
+          <label>
+            Status:
+            <select id="status-filter">
+              <option value="ALL">All</option>
+              <option value="SAFE">Safe</option>
+              <option value="CAUTION">Caution</option>
+              <option value="ALERT">Alert</option>
+            </select>
+          </label>
+          <label>
+            Size:
+            <input type="text" id="size-filter" placeholder="e.g. small, 10,000㎡, 20F" />
+          </label>
+        </div>
+      </div>
+
+      <div id="site-summary" class="site-summary"></div>
+      <div id="site-list" class="site-list"></div>
+    </section>
+
+    <section class="panel panel--form">
+      <h2>New Site</h2>
+      <form id="site-form">
+        <div class="form-row">
+          <label for="name">Site name<span class="required">*</span></label>
+          <input type="text" id="name" required placeholder="e.g. Seoul Station Tower A" />
+        </div>
+
+        <div class="form-row form-row--inline">
+          <div class="form-col">
+            <label for="address">Address<span class="required">*</span></label>
+            <input type="text" id="address" required placeholder="Type address and press Search" />
+          </div>
+          <button type="button" id="search-address" class="btn btn--secondary">Search</button>
+        </div>
+
+        <div id="geocode-results" class="geocode-results"></div>
+
+        <input type="hidden" id="latitude" />
+        <input type="hidden" id="longitude" />
+
+        <div class="form-row">
+          <label for="sensorCount">Number of sensors</label>
+          <input type="number" id="sensorCount" min="0" placeholder="e.g. 3" />
+        </div>
+
+        <div class="form-row">
+          <label for="buildingSize">Building size / floor area</label>
+          <input type="text" id="buildingSize" placeholder="e.g. 12,000㎡, 20F, large" />
+        </div>
+
+        <div class="form-row">
+          <label for="buildingYear">Year built</label>
+          <input type="text" id="buildingYear" placeholder="e.g. 2005" />
+        </div>
+
+        <div class="form-row">
+          <label for="notes">Notes (classification)</label>
+          <textarea id="notes" rows="3" placeholder="e.g. hospital building, seismic design, Block B only"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn--primary">Create site</button>
+        <p class="help-text">
+          Address search uses a free global geocoding service. 위·경도는 지도 표시를 위해 내부적으로만 사용됩니다.
+        </p>
+      </form>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>BEDS · © AIRX (individual business)</span>
+  </footer>
+
+  <script src="admin.js"></script>
+</body>
+</html>

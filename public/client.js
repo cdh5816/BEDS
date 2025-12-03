@@ -14,6 +14,15 @@ const miniChartBarsEl = document.getElementById('mini-chart-bars');
 const miniChartLabelsEl = document.getElementById('mini-chart-labels');
 
 let clientSites = [];
+let map;
+let mapMarker;
+
+function ensureLoggedIn() {
+  const loggedIn = localStorage.getItem('beds_logged_in') === '1';
+  if (!loggedIn) {
+    window.location.href = 'index.html';
+  }
+}
 
 async function loadClientSites() {
   const res = await fetch(`${API_BASE}/api/sites`);
@@ -23,7 +32,7 @@ async function loadClientSites() {
 
   if (!clientSites.length) {
     const opt = document.createElement('option');
-    opt.textContent = '등록된 현장이 없습니다.';
+    opt.textContent = 'No sites registered.';
     opt.disabled = true;
     opt.selected = true;
     clientSiteSelectEl.appendChild(opt);
@@ -37,7 +46,6 @@ async function loadClientSites() {
     clientSiteSelectEl.appendChild(opt);
   });
 
-  // 첫 번째 현장 로드
   loadMetricsForSelected();
 }
 
@@ -48,17 +56,17 @@ function renderClientStatus(site, metrics) {
 
   const wrap = document.createElement('div');
   let statusClass = 'client-status-safe';
-  let mainLabel = '안전';
-  let subLabel = '지진·진동 상태 양호';
+  let mainLabel = 'SAFE';
+  let subLabel = 'Structure status is within normal range.';
 
   if (site.status === 'CAUTION') {
     statusClass = 'client-status-caution';
-    mainLabel = '주의';
-    subLabel = '진동 수준 모니터링 필요';
+    mainLabel = 'CAUTION';
+    subLabel = 'Monitoring recommended for this site.';
   } else if (site.status === 'ALERT') {
     statusClass = 'client-status-alert';
-    mainLabel = '경고';
-    subLabel = '즉각적인 점검 권장';
+    mainLabel = 'ALERT';
+    subLabel = 'Immediate inspection recommended.';
   }
 
   wrap.className = `client-status-badge-inner ${statusClass}`;
@@ -124,6 +132,52 @@ function renderMiniChart(metrics) {
   });
 }
 
+function initMap() {
+  const mapEl = document.getElementById('site-map');
+  if (!mapEl) return;
+
+  map = L.map('site-map', {
+    zoomControl: false
+  }).setView([37.5665, 126.9780], 12); // default: Seoul
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: ''
+  }).addTo(map);
+}
+
+function updateMapForSite(site) {
+  if (!map) return;
+  if (!site || !site.latitude || !site.longitude) {
+    map.setView([37.5665, 126.9780], 12);
+    if (mapMarker) {
+      map.removeLayer(mapMarker);
+      mapMarker = null;
+    }
+    return;
+  }
+
+  const lat = Number(site.latitude);
+  const lon = Number(site.longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    map.setView([37.5665, 126.9780], 12);
+    if (mapMarker) {
+      map.removeLayer(mapMarker);
+      mapMarker = null;
+    }
+    return;
+  }
+
+  map.setView([lat, lon], 16);
+
+  if (!mapMarker) {
+    mapMarker = L.marker([lat, lon]).addTo(map);
+  } else {
+    mapMarker.setLatLng([lat, lon]);
+  }
+}
+
 async function loadMetricsForSelected() {
   const id = clientSiteSelectEl.value;
   if (!id) return;
@@ -136,6 +190,7 @@ async function loadMetricsForSelected() {
       renderClientStatus(site, null);
       renderKpis(null);
       renderMiniChart(null);
+      updateMapForSite(site);
       return;
     }
 
@@ -143,15 +198,19 @@ async function loadMetricsForSelected() {
     renderClientStatus(site, metrics);
     renderKpis(metrics);
     renderMiniChart(metrics);
+    updateMapForSite(site);
   } catch (err) {
     console.error(err);
     renderClientStatus(site, null);
     renderKpis(null);
     renderMiniChart(null);
+    updateMapForSite(site);
   }
 }
 
 function initClient() {
+  ensureLoggedIn();
+  initMap();
   loadClientSites();
   clientSiteSelectEl.addEventListener('change', loadMetricsForSelected);
 }

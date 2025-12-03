@@ -4,103 +4,77 @@
 
 
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>BEDS_v3 - 관리자 대시보드</title>
+  <title>BEDS · Building Earthquake Detection System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="admin-body">
-  <header class="app-header">
-    <div>
-      <h1>BEDS 관리자 대시보드</h1>
-      <p class="subtitle">현장별 지진·진동 상태를 한눈에 관리</p>
-    </div>
-    <nav class="app-nav">
-      <a href="index.html" class="nav-link nav-link--active">관리자</a>
-      <a href="client.html" class="nav-link">고객용 페이지</a>
-    </nav>
-  </header>
-
-  <main class="layout">
-    <section class="panel panel--sites">
-      <div class="panel-header">
-        <h2>등록된 현장 목록</h2>
-        <div class="filters">
-          <label>
-            상태:
-            <select id="status-filter">
-              <option value="ALL">전체</option>
-              <option value="SAFE">안전</option>
-              <option value="CAUTION">위험</option>
-              <option value="ALERT">경고</option>
-            </select>
-          </label>
-          <label>
-            건물 크기:
-            <input type="text" id="size-filter" placeholder="예: 소형, 중형, 대형, 10,000㎡ 이상" />
-          </label>
-        </div>
+<body class="landing-body">
+  <div class="landing-wrapper">
+    <header class="landing-header">
+      <div class="landing-brand">
+        <div class="brand-mark">BEDS</div>
+        <div class="brand-script">Building Earthquake Detection System</div>
       </div>
+    </header>
 
-      <div id="site-summary" class="site-summary"></div>
-      <div id="site-list" class="site-list"></div>
-    </section>
-
-    <section class="panel panel--form">
-      <h2>새 현장 등록</h2>
-      <form id="site-form">
-        <div class="form-row">
-          <label for="name">현장 이름<span class="required">*</span></label>
-          <input type="text" id="name" required placeholder="예: 서울역 A동 오피스텔" />
+    <main class="landing-main">
+      <section class="landing-hero">
+        <div class="hero-copy">
+          <h1 class="hero-title">
+            Real-time structural<br />
+            health monitoring<br />
+            for modern buildings.
+          </h1>
+          <p class="hero-subtitle">
+            High-resolution vibration tracking, drift analysis, and alerting — designed for mission-critical sites.
+          </p>
+          <p class="hero-subtitle-kor">
+            ※ 로그인 후 각 건물의 지진·진동 상태를 실시간으로 조회할 수 있습니다.
+          </p>
         </div>
-
-        <div class="form-row form-row--inline">
-          <div class="form-col">
-            <label for="address">주소<span class="required">*</span></label>
-            <input type="text" id="address" required placeholder="주소 입력 후 검색 버튼 클릭" />
-          </div>
-          <button type="button" id="search-address" class="btn btn--secondary">주소 검색</button>
+        <div class="hero-login-card">
+          <h2 class="login-title">Operator Login</h2>
+          <form id="login-form" class="login-form">
+            <div class="form-row">
+              <label for="login-id">ID</label>
+              <input id="login-id" type="text" placeholder="Enter operator ID" autocomplete="username" />
+            </div>
+            <div class="form-row">
+              <label for="login-password">Password</label>
+              <input id="login-password" type="password" placeholder="Enter password" autocomplete="current-password" />
+            </div>
+            <button type="submit" class="btn btn--primary btn--full">Sign in</button>
+            <p class="login-hint">
+              Demo credentials are pre-configured in the system.<br />
+              로그인 정보는 실제 배포 시 관리자 페이지에서 별도로 설정합니다.
+            </p>
+            <p id="login-error" class="login-error" aria-live="polite"></p>
+          </form>
         </div>
+      </section>
 
-        <div id="geocode-results" class="geocode-results"></div>
-
-        <input type="hidden" id="latitude" />
-        <input type="hidden" id="longitude" />
-
-        <div class="form-row">
-          <label for="sensorCount">센서 설치 개수</label>
-          <input type="number" id="sensorCount" min="0" placeholder="예: 3" />
-        </div>
-
-        <div class="form-row">
-          <label for="buildingSize">건물 크기 / 연면적</label>
-          <input type="text" id="buildingSize" placeholder="예: 12,000㎡, 20층, 대형" />
-        </div>
-
-        <div class="form-row">
-          <label for="buildingYear">건물 준공 연도</label>
-          <input type="text" id="buildingYear" placeholder="예: 2005" />
-        </div>
-
-        <div class="form-row">
-          <label for="notes">기타 메모 (구분용 정보)</label>
-          <textarea id="notes" rows="3" placeholder="예: 학교 건물, 내진설계 O, B동만 시범 설치 등"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn--primary">현장 등록</button>
-        <p class="help-text">
-          ※ 주소 검색은 내장 API(<code>/api/geocode</code>)를 사용합니다. 별도 키 설정 없이 바로 사용 가능합니다.
+      <section class="landing-footer-note">
+        <p>
+          BEDS aggregates sensor data across your building portfolio,
+          computes vibration frequency, drift, and alert statistics, and presents them in a clean, mobile-first dashboard.
         </p>
-      </form>
-    </section>
-  </main>
+        <p class="landing-footer-note-kor">
+          이 화면은 소개 및 로그인 화면입니다. 로그인 후 건물 모니터링 페이지에서 각 현장의 진동 횟수, 휨 변위, 경고 횟수 등을 확인할 수 있습니다.
+        </p>
+      </section>
+    </main>
 
-  <footer class="app-footer">
-    <span>BEDS_v3 · © AIRX (individual business)</span>
-  </footer>
+    <footer class="app-footer landing-footer">
+      <span>BEDS · © AIRX (individual business)</span>
+    </footer>
+  </div>
 
-  <script src="app.js"></script>
+  <script src="landing.js"></script>
 </body>
 </html>
