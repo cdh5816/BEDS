@@ -1,16 +1,11 @@
 {
   "name": "beds-v3",
-  "version": "1.3.1",
-  "description": "Building Earthquake Detection System - Web dashboard & API (BEDS_v3)",
+  "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "NODE_ENV=development node server.js"
+    "start": "node server.js"
   },
-  "author": "AIRX (individual business)",
-  "license": "Proprietary - © AIRX (individual business)",
   "dependencies": {
-    "cors": "^2.8.5",
     "express": "^4.21.0"
   }
 }
