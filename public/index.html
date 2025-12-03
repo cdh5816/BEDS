@@ -9,6 +9,7 @@
   <meta charset="UTF-8" />
   <title>BEDS · Building Earthquake Detection System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet" />
@@ -16,15 +17,21 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="landing-body">
+<body class="landing-body bg-slate-950 text-slate-100 min-h-screen">
   <div class="landing-wrapper">
-    <header class="landing-header">
+    <header class="landing-header flex items-center justify-between px-6 pt-4 pb-2">
       <div class="landing-brand">
-        <div class="brand-mark">BEDS</div>
-        <div class="brand-script">Building Earthquake Detection System</div>
+        <div class="brand-mark text-xs tracking-[0.35em] uppercase text-slate-400">
+          BEDS
+        </div>
+        <div class="brand-script italic text-[12px] tracking-[0.22em] text-slate-300">
+          Building Earthquake Detection System
+        </div>
       </div>
-      <div class="landing-actions">
-        <button id="login-toggle" class="btn btn--ghost">Login</button>
+      <div class="landing-actions flex items-center gap-3">
+        <button id="login-toggle" class="btn btn--secondary btn--nav text-xs">
+          Login
+        </button>
       </div>
       <div id="login-panel" class="login-panel">
         <form id="login-form" class="login-panel-form">
@@ -46,13 +53,14 @@
       </div>
     </header>
 
-    <main class="landing-main">
-      <section class="landing-grid">
+    <main class="landing-main px-6 pb-6 flex flex-col gap-4">
+      <section class="landing-grid gap-4">
         <div class="landing-map-wrapper">
           <div id="landing-map" class="landing-map"></div>
+          <div id="landing-site-list" class="landing-site-list"></div>
         </div>
         <aside class="landing-side">
-          <div class="sample-card">
+          <div class="sample-card w-full">
             <div class="sample-header">
               <span class="sample-label">Sample asset</span>
               <span class="sample-status sample-status--safe">
@@ -60,25 +68,27 @@
                 SAFE
               </span>
             </div>
-            <h2 class="sample-title">Seoul Financial Center</h2>
-            <p class="sample-address">136, Sejong-daero, Jung-gu, Seoul, Republic of Korea</p>
+            <h2 class="sample-title" id="sample-title">Seoul Financial Center</h2>
+            <p class="sample-address" id="sample-address">
+              136, Sejong-daero, Jung-gu, Seoul, Republic of Korea
+            </p>
 
             <div class="sample-kpis">
               <div class="sample-kpi">
                 <div class="sample-kpi-label">Events (24h)</div>
-                <div class="sample-kpi-value">3</div>
+                <div class="sample-kpi-value" id="sample-events">3</div>
               </div>
               <div class="sample-kpi">
                 <div class="sample-kpi-label">Max drift (today)</div>
-                <div class="sample-kpi-value">0.42 mm</div>
+                <div class="sample-kpi-value" id="sample-drift">0.42 mm</div>
               </div>
               <div class="sample-kpi">
                 <div class="sample-kpi-label">Alerts (30d)</div>
-                <div class="sample-kpi-value">0</div>
+                <div class="sample-kpi-value" id="sample-alerts">0</div>
               </div>
             </div>
 
-            <p class="sample-note">
+            <p class="sample-note" id="sample-note">
               This is a static demo card. 실제 데이터는 로그인 후 Monitoring 화면에서
               각 현장의 센서 측정값을 기반으로 실시간으로 표시됩니다.
             </p>

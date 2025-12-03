@@ -7,26 +7,25 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>BEDS · 건물 모니터링</title>
+  <title>BEDS · 모니터링</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="client-body">
+<body class="client-body bg-slate-950 text-slate-100 min-h-screen flex flex-col">
   <header class="app-header">
     <div>
-      <h1 class="app-title">BEDS 건물 모니터링</h1>
-      <p class="subtitle">현장별 진동/휨 이력과 위험도를 한눈에 확인하는 화면입니다.</p>
+      <h1 class="app-title">BEDS 모니터링</h1>
+      <p class="subtitle">현장별 진동·경고 현황 대시보드</p>
     </div>
-    <div class="app-header-right">
-      <nav class="app-nav">
-        <a href="index.html" class="nav-link">첫 화면</a>
-        <span class="nav-link nav-link--active">모니터링</span>
-        <a href="admin.html" class="nav-link">관리자</a>
-      </nav>
-      <button id="logout-btn" class="btn btn--ghost btn--sm">로그아웃</button>
-    </div>
+    <nav class="app-nav">
+      <a href="index.html" class="nav-link">메인</a>
+      <span class="nav-link nav-link--active">모니터링</span>
+      <a href="admin.html" class="nav-link" id="nav-admin">관리자</a>
+      <button id="logout-btn" class="btn btn--secondary btn--nav">로그아웃</button>
+    </nav>
   </header>
 
   <main class="client-layout">
@@ -36,9 +35,7 @@
           <label for="client-site-select">현장 선택</label>
           <select id="client-site-select"></select>
         </div>
-        <div id="client-status-badge" class="client-status-badge">
-          <!-- status badge -->
-        </div>
+        <div id="client-status-badge" class="client-status-badge"></div>
       </div>
 
       <div class="metric-grid">
@@ -50,36 +47,36 @@
         <div class="kpi-card">
           <div class="kpi-label">오늘 최대 진폭</div>
           <div id="kpi-today-maxmag" class="kpi-value">-</div>
-          <div class="kpi-sub">상대적 진동 크기(단위: 공학적 지표)</div>
+          <div class="kpi-sub">상대 진동 크기 (단위화)</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">오늘 최대 휨 변위</div>
           <div id="kpi-today-maxdrift" class="kpi-value">-</div>
-          <div class="kpi-sub">단위: mm (데모 기준 값)</div>
+          <div class="kpi-sub">mm (단순 데모 값)</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">최근 30일 경고 횟수</div>
           <div id="kpi-30d-alerts" class="kpi-value">-</div>
-          <div class="kpi-sub">설정된 임계값을 넘은 날 수</div>
+          <div class="kpi-sub">설정 임계값 이상 발생 횟수</div>
         </div>
       </div>
 
       <div class="map-wrapper">
         <div class="map-header">
           <span class="map-title">현장 지도</span>
-          <span class="map-subtitle">등록된 주소 기반으로 센서 위치가 표시됩니다.</span>
+          <span class="map-subtitle">등록된 주소 기반 좌표로 위치를 표시합니다.</span>
         </div>
         <div id="site-map" class="site-map"></div>
         <p class="help-text map-help">
-          ※ 관리자 페이지에서 주소 검색 후 저장하면, 해당 좌표를 기반으로 이 지도에 표시됩니다.
+          ※ 관리자 화면에서 현장 주소를 정확히 등록할수록, 지도 위치 표시가 더 정확해집니다.
         </p>
       </div>
     </section>
 
     <section class="panel panel--client-chart">
-      <h2>최근 7일 진동 패턴</h2>
+      <h2>7일 진동 패턴</h2>
       <p class="help-text chart-caption">
-        데모 기준 그래프입니다. 실제 센서와 연동되면 일자별 진동 횟수와 휨 변위를 그대로 반영합니다.
+        간단한 데모 차트입니다. 실제 센서 연동 시 일자별 진동 횟수와 휨 변위 추이를 그대로 반영합니다.
       </p>
       <div class="mini-chart">
         <div id="mini-chart-bars" class="mini-chart-bars"></div>
