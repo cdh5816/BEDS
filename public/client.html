@@ -1,0 +1,80 @@
+<!-- © AIRX (individual business). All rights reserved.
+     This codebase is owned by the user (AIRX) for the Building Earthquake Detection System project.
+-->
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>BEDS_v3 - 고객용 건물 모니터링</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="client-body">
+  <header class="app-header">
+    <div>
+      <h1>BEDS 건물 모니터링</h1>
+      <p class="subtitle">내 건물의 지진·진동 상태를 직관적으로 확인</p>
+    </div>
+    <nav class="app-nav">
+      <a href="index.html" class="nav-link">관리자</a>
+      <a href="client.html" class="nav-link nav-link--active">고객용 페이지</a>
+    </nav>
+  </header>
+
+  <main class="client-layout">
+    <section class="panel panel--client-main">
+      <div class="client-header-row">
+        <div class="client-site-select">
+          <label for="client-site-select">현장 선택</label>
+          <select id="client-site-select"></select>
+        </div>
+        <div id="client-status-badge" class="client-status-badge">
+          <!-- 상태 뱃지 동적 렌더링 -->
+        </div>
+      </div>
+
+      <div class="metric-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">오늘 진동 감지 횟수</div>
+          <div id="kpi-today-events" class="kpi-value">-</div>
+          <div class="kpi-sub">최근 24시간 기준</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">오늘 최대 진동 세기</div>
+          <div id="kpi-today-maxmag" class="kpi-value">-</div>
+          <div class="kpi-sub">상대 진폭 지표</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">오늘 최대 휨 변위</div>
+          <div id="kpi-today-maxdrift" class="kpi-value">-</div>
+          <div class="kpi-sub">mm 단위 (상대값)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">최근 30일 경고 횟수</div>
+          <div id="kpi-30d-alerts" class="kpi-value">-</div>
+          <div class="kpi-sub">경고 레벨 발생 횟수</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel--client-chart">
+      <h2>최근 7일 진동 패턴</h2>
+      <p class="help-text chart-caption">
+        일별 진동 감지 횟수와 휨 변위를 단순화한 데모 그래프입니다. 실제 센서 연동 시 이 영역에 실시간 데이터가 표시됩니다.
+      </p>
+      <div class="mini-chart">
+        <div id="mini-chart-bars" class="mini-chart-bars"></div>
+        <div id="mini-chart-labels" class="mini-chart-labels"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>BEDS_v3 · © AIRX (individual business)</span>
+  </footer>
+
+  <script src="client.js"></script>
+</body>
+</html>

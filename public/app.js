@@ -1,645 +1,331 @@
+// © AIRX (individual business). All rights reserved.
+// This codebase is owned by the user (AIRX) for the Building Earthquake Detection System project.
 
-// © AIRX (individual business) - All rights reserved.
-// BEDS v2 frontend logic.
 
-(function () {
-  const API_BASE = '';
-  const CONFIG = window.BEDS_CONFIG || {};
+const API_BASE = ''; // same origin
 
-  const loginButton = document.getElementById('beds-login-button');
-  const logoutButton = document.getElementById('beds-logout-button');
-  const roleBadge = document.getElementById('beds-role-badge');
+const siteListEl = document.getElementById('site-list');
+const siteSummaryEl = document.getElementById('site-summary');
+const statusFilterEl = document.getElementById('status-filter');
+const sizeFilterEl = document.getElementById('size-filter');
 
-  const loginModal = document.getElementById('beds-login-modal');
-  const loginForm = document.getElementById('beds-login-form');
-  const loginCloseButton = document.getElementById('beds-modal-close');
+const formEl = document.getElementById('site-form');
+const nameEl = document.getElementById('name');
+const addressEl = document.getElementById('address');
+const latitudeEl = document.getElementById('latitude');
+const longitudeEl = document.getElementById('longitude');
+const sensorCountEl = document.getElementById('sensorCount');
+const buildingSizeEl = document.getElementById('buildingSize');
+const buildingYearEl = document.getElementById('buildingYear');
+const notesEl = document.getElementById('notes');
+const searchAddressBtn = document.getElementById('search-address');
+const geocodeResultsEl = document.getElementById('geocode-results');
 
-  const adminPanel = document.getElementById('beds-admin-panel');
-  const adminTabSites = document.getElementById('beds-admin-tab-sites');
-  const adminTabList = document.getElementById('beds-admin-tab-list');
-  const adminTabContentSites = document.getElementById('beds-admin-tab-content-sites');
-  const adminTabContentList = document.getElementById('beds-admin-tab-content-list');
-  const adminSitesList = document.getElementById('beds-admin-sites-list');
+let sites = [];
 
-  const customerPanel = document.getElementById('beds-customer-panel');
-  const customerSiteSelect = document.getElementById('customer-site-select');
-  const connectionAlert = document.getElementById('beds-connection-alert');
-  const statusShake = document.getElementById('status-shake');
-  const statusBending = document.getElementById('status-bending');
-  const statusSensorCount = document.getElementById('status-sensor-count');
-  const measurementsTimeline = document.getElementById('beds-measurements-timeline');
-  const statusMainBadge = document.getElementById('status-main-badge');
+async function fetchSites() {
+  const res = await fetch(`${API_BASE}/api/sites`);
+  sites = await res.json();
+  renderSites();
+}
 
-  const mapElement = document.getElementById('beds-map');
-  const publicSitesContainer = document.getElementById('beds-public-sites-container');
+function renderSummary() {
+  const total = sites.length;
+  const safe = sites.filter((s) => s.status === 'SAFE').length;
+  const caution = sites.filter((s) => s.status === 'CAUTION').length;
+  const alert = sites.filter((s) => s.status === 'ALERT').length;
 
-  const siteForm = document.getElementById('beds-site-form');
-  const siteNameInput = document.getElementById('site-name');
-  const siteAddressInput = document.getElementById('site-address');
-  const siteLatInput = document.getElementById('site-lat');
-  const siteLngInput = document.getElementById('site-lng');
-  const siteSensorCountInput = document.getElementById('site-sensor-count');
-  const siteBuildingSizeInput = document.getElementById('site-building-size');
-  const siteBuildYearInput = document.getElementById('site-build-year');
-  const siteNotesInput = document.getElementById('site-notes');
-  const addressSearchButton = document.getElementById('beds-address-search-button');
+  siteSummaryEl.innerHTML = '';
 
-  let map;
-  let markersLayer;
-  let statusPollTimer = null;
+  const items = [
+    { label: '전체', value: total, className: '' },
+    { label: '안전', value: safe, className: 'site-summary-safe' },
+    { label: '위험', value: caution, className: 'site-summary-caution' },
+    { label: '경고', value: alert, className: 'site-summary-alert' }
+  ];
 
-  function getToken() {
-    return localStorage.getItem('beds_v2_token');
-  }
+  items.forEach((item) => {
+    const pill = document.createElement('div');
+    pill.className = `site-summary-pill ${item.className}`.trim();
 
-  function getCurrentUser() {
-    const raw = localStorage.getItem('beds_v2_user');
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
-
-  function storeAuth(token, user) {
-    localStorage.setItem('beds_v2_token', token);
-    localStorage.setItem('beds_v2_user', JSON.stringify(user));
-  }
-
-  function clearAuth() {
-    localStorage.removeItem('beds_v2_token');
-    localStorage.removeItem('beds_v2_user');
-  }
-
-  function openLoginModal() {
-    if (!loginModal) return;
-    loginModal.classList.remove('hidden');
-  }
-
-  function closeLoginModal() {
-    if (!loginModal) return;
-    loginModal.classList.add('hidden');
-  }
-
-  function applyRoleUI() {
-    const user = getCurrentUser();
-    const token = getToken();
-
-    if (!user || !token) {
-      adminPanel.classList.add('hidden');
-      customerPanel.classList.add('hidden');
-      roleBadge.classList.add('hidden');
-      loginButton.classList.remove('hidden');
-      logoutButton.classList.add('hidden');
-      stopStatusPolling();
-      return;
+    if (item.className) {
+      const dot = document.createElement('span');
+      dot.className = 'site-summary-dot';
+      pill.appendChild(dot);
     }
 
-    loginButton.classList.add('hidden');
-    logoutButton.classList.remove('hidden');
-    roleBadge.classList.remove('hidden');
-    roleBadge.textContent =
-      user.role === 'ADMIN' ? `관리자 · ${user.name}` : `고객 · ${user.name}`;
+    const text = document.createElement('span');
+    text.textContent = `${item.label} ${item.value}`;
+    pill.appendChild(text);
 
-    if (user.role === 'ADMIN') {
-      adminPanel.classList.remove('hidden');
-      customerPanel.classList.add('hidden');
-      loadAdminSites();
-    } else if (user.role === 'CUSTOMER') {
-      adminPanel.classList.add('hidden');
-      customerPanel.classList.remove('hidden');
-      loadCustomerSites();
-    }
-  }
-
-  function attachEvents() {
-    if (loginButton) {
-      loginButton.addEventListener('click', () => openLoginModal());
-    }
-    if (logoutButton) {
-      logoutButton.addEventListener('click', () => {
-        clearAuth();
-        applyRoleUI();
-      });
-    }
-    if (loginCloseButton) {
-      loginCloseButton.addEventListener('click', () => closeLoginModal());
-    }
-    if (loginModal) {
-      loginModal.addEventListener('click', (e) => {
-        if (e.target === loginModal) closeLoginModal();
-      });
-    }
-
-    if (loginForm) {
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-        if (!email || !password) return;
-
-        try {
-          const res = await fetch(API_BASE + '/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-          });
-          if (!res.ok) {
-            const errData = await res.json().catch(() => null);
-            const msg = (errData && errData.message) || '로그인 실패';
-            alert(msg);
-            return;
-          }
-          const data = await res.json();
-          storeAuth(data.token, data.user);
-          closeLoginModal();
-          applyRoleUI();
-          alert('로그인 성공');
-        } catch (err) {
-          console.error('login error', err);
-          alert('로그인 중 오류가 발생했습니다.');
-        }
-      });
-    }
-
-    if (siteForm) {
-      siteForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = siteNameInput.value.trim();
-        const address = siteAddressInput.value.trim();
-        const lat = parseFloat(siteLatInput.value);
-        const lng = parseFloat(siteLngInput.value);
-        const sensorCountVal = siteSensorCountInput.value.trim();
-        const buildingSize = siteBuildingSizeInput.value.trim();
-        const buildYearVal = siteBuildYearInput.value.trim();
-        const notes = siteNotesInput.value.trim();
-
-        if (!name || !address) {
-          alert('현장 이름과 주소를 입력해주세요.');
-          return;
-        }
-        if (isNaN(lat) || isNaN(lng)) {
-          alert('주소 검색 버튼으로 좌표를 먼저 계산해주세요.');
-          return;
-        }
-
-        const sensorCount = sensorCountVal ? parseInt(sensorCountVal, 10) : null;
-        const buildYear = buildYearVal ? parseInt(buildYearVal, 10) : null;
-
-        const token = getToken();
-        if (!token) {
-          alert('관리자 로그인이 필요합니다.');
-          return;
-        }
-
-        try {
-          const res = await fetch(API_BASE + '/api/admin/sites', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: 'Bearer ' + token
-            },
-            body: JSON.stringify({
-              name,
-              address,
-              lat,
-              lng,
-              sensorCountPlanned: isNaN(sensorCount) ? null : sensorCount,
-              buildingSize: buildingSize || '',
-              buildYear: isNaN(buildYear) ? null : buildYear,
-              notes
-            })
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => null);
-            alert((err && err.message) || '현장 등록 실패');
-            return;
-          }
-          await res.json();
-          alert('현장이 등록되었습니다.');
-          siteNameInput.value = '';
-          siteAddressInput.value = '';
-          siteLatInput.value = '';
-          siteLngInput.value = '';
-          siteSensorCountInput.value = '';
-          siteBuildingSizeInput.value = '';
-          siteBuildYearInput.value = '';
-          siteNotesInput.value = '';
-          loadPublicSites();
-          loadAdminSites();
-        } catch (err) {
-          console.error('add site error', err);
-          alert('현장 등록 중 오류가 발생했습니다.');
-        }
-      });
-    }
-
-    if (addressSearchButton) {
-      if (!CONFIG.kakaoRestApiKey) {
-        addressSearchButton.disabled = true;
-        addressSearchButton.textContent = 'API 키 필요';
-      } else {
-        addressSearchButton.addEventListener('click', onAddressSearch);
-      }
-    }
-
-    if (adminTabSites && adminTabList) {
-      adminTabSites.addEventListener('click', () => setAdminTab('sites'));
-      adminTabList.addEventListener('click', () => setAdminTab('list'));
-    }
-
-    if (customerSiteSelect) {
-      customerSiteSelect.addEventListener('change', () => startStatusPolling());
-    }
-  }
-
-  function setAdminTab(tab) {
-    if (tab === 'sites') {
-      adminTabSites.classList.add('active');
-      adminTabList.classList.remove('active');
-      adminTabContentSites.classList.add('active');
-      adminTabContentList.classList.remove('active');
-    } else {
-      adminTabSites.classList.remove('active');
-      adminTabList.classList.add('active');
-      adminTabContentSites.classList.remove('active');
-      adminTabContentList.classList.add('active');
-    }
-  }
-
-  function initMap() {
-    if (!mapElement) return;
-    map = L.map(mapElement, { zoomControl: true }).setView([36.5, 127.8], 7);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    markersLayer = L.layerGroup().addTo(map);
-    loadPublicSites();
-  }
-
-  async function loadPublicSites() {
-    try {
-      const res = await fetch(API_BASE + '/api/public/sites');
-      if (!res.ok) return;
-      const data = await res.json();
-      const sites = data.sites || [];
-
-      markersLayer.clearLayers();
-      sites.forEach((s) => {
-        if (typeof s.lat !== 'number' || typeof s.lng !== 'number') return;
-        const badgeHtml = renderStatusBadgeHtml(s.status);
-        const marker = L.marker([s.lat, s.lng]);
-        marker.bindPopup(
-          `<div class="beds-popup"><strong>${escapeHtml(
-            s.name
-          )}</strong><br/><span>${escapeHtml(
-            s.address
-          )}</span><br/>${badgeHtml}</div>`
-        );
-        marker.addTo(markersLayer);
-      });
-
-      publicSitesContainer.innerHTML = '';
-      if (sites.length === 0) {
-        publicSitesContainer.innerHTML =
-          '<div class="site-item"><div class="site-item-name">등록된 현장이 없습니다.</div></div>';
-      } else {
-        sites.forEach((s) => {
-          const div = document.createElement('div');
-          div.className = 'site-item';
-          const badgeHtml = renderStatusBadgeHtml(s.status);
-          const sizeText = s.buildingSize ? escapeHtml(s.buildingSize) : '규모 정보 없음';
-          const buildYearText = s.buildYear ? `${s.buildYear}년 준공` : '준공연도 미입력';
-          const sensorText =
-            typeof s.sensorCountPlanned === 'number'
-              ? `센서 계획: ${s.sensorCountPlanned}개`
-              : '센서 개수 미입력';
-          const notesText = s.notes ? escapeHtml(s.notes) : '';
-          div.innerHTML = `
-            <div class="site-item-top">
-              <div class="site-item-name">${escapeHtml(s.name)}</div>
-              ${badgeHtml}
-            </div>
-            <div class="site-item-meta">${escapeHtml(s.address)}</div>
-            <div class="site-item-meta">${sizeText} · ${buildYearText} · ${sensorText}</div>
-            ${
-              notesText
-                ? `<div class="site-item-tags">메모: ${notesText}</div>`
-                : ''
-            }
-          `;
-          publicSitesContainer.appendChild(div);
-        });
-      }
-    } catch (err) {
-      console.error('public sites error', err);
-    }
-  }
-
-  async function loadAdminSites() {
-    const token = getToken();
-    if (!token) return;
-    try {
-      const res = await fetch(API_BASE + '/api/admin/sites', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const sites = data.sites || [];
-      adminSitesList.innerHTML = '';
-      if (sites.length === 0) {
-        adminSitesList.innerHTML =
-          '<div class="site-item"><div class="site-item-name">등록된 현장이 없습니다.</div></div>';
-      } else {
-        sites.forEach((s) => {
-          const div = document.createElement('div');
-          div.className = 'site-item';
-          const badgeHtml = renderStatusBadgeHtml(s.status);
-          const sizeText = s.buildingSize ? escapeHtml(s.buildingSize) : '규모 정보 없음';
-          const buildYearText = s.buildYear ? `${s.buildYear}년 준공` : '준공연도 미입력';
-          const sensorText =
-            typeof s.sensorCountPlanned === 'number'
-              ? `센서 계획: ${s.sensorCountPlanned}개`
-              : '센서 개수 미입력';
-          const notesText = s.notes ? escapeHtml(s.notes) : '';
-          div.innerHTML = `
-            <div class="site-item-top">
-              <div class="site-item-name">${escapeHtml(s.name)}</div>
-              ${badgeHtml}
-            </div>
-            <div class="site-item-meta">${escapeHtml(s.address)}</div>
-            <div class="site-item-meta">${sizeText} · ${buildYearText} · ${sensorText}</div>
-            ${
-              notesText
-                ? `<div class="site-item-tags">메모: ${notesText}</div>`
-                : ''
-            }
-          `;
-          adminSitesList.appendChild(div);
-        });
-      }
-    } catch (err) {
-      console.error('admin sites error', err);
-    }
-  }
-
-  async function loadCustomerSites() {
-    const token = getToken();
-    if (!token) return;
-    try {
-      const res = await fetch(API_BASE + '/api/customer/sites', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const sites = data.sites || [];
-
-      customerSiteSelect.innerHTML = '';
-      if (sites.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = '연결된 현장이 없습니다.';
-        customerSiteSelect.appendChild(opt);
-        stopStatusPolling();
-        clearStatusUI();
-        return;
-      }
-      sites.forEach((s, idx) => {
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = s.name;
-        if (idx === 0) opt.selected = true;
-        customerSiteSelect.appendChild(opt);
-      });
-      startStatusPolling();
-    } catch (err) {
-      console.error('customer sites error', err);
-    }
-  }
-
-  function clearStatusUI() {
-    statusShake.textContent = '-';
-    statusBending.textContent = '-';
-    statusSensorCount.textContent = '-';
-    connectionAlert.classList.add('hidden');
-    measurementsTimeline.innerHTML = '';
-    setStatusMainBadge({ level: 'SAFE', label: '안전' });
-  }
-
-  function startStatusPolling() {
-    stopStatusPolling();
-    const siteId = customerSiteSelect.value;
-    if (!siteId) return;
-    pollStatusOnce(siteId);
-    statusPollTimer = setInterval(() => pollStatusOnce(siteId), 5000);
-  }
-
-  function stopStatusPolling() {
-    if (statusPollTimer) {
-      clearInterval(statusPollTimer);
-      statusPollTimer = null;
-    }
-  }
-
-  async function pollStatusOnce(siteId) {
-    const token = getToken();
-    if (!token || !siteId) return;
-    try {
-      const res = await fetch(API_BASE + `/api/customer/sites/${siteId}/status`, {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) {
-        console.error('status error', res.status);
-        return;
-      }
-      const data = await res.json();
-      renderStatus(data);
-    } catch (err) {
-      console.error('status fetch error', err);
-    }
-  }
-
-  function renderStatus(data) {
-    const sensors = data.sensors || [];
-    const latest = data.latestMeasurement || null;
-    const measurements = data.measurements || [];
-    const statusInfo = data.status || { level: 'SAFE', label: '안전' };
-
-    statusSensorCount.textContent = sensors.length.toString();
-    if (latest && latest.metrics) {
-      const shake = latest.metrics.shake;
-      const bending = latest.metrics.bending;
-      statusShake.textContent =
-        typeof shake === 'number' ? shake.toFixed(3) : '-';
-      statusBending.textContent =
-        typeof bending === 'number' ? bending.toFixed(3) : '-';
-    } else {
-      statusShake.textContent = '-';
-      statusBending.textContent = '-';
-    }
-
-    if (data.connectionLost || statusInfo.level === 'OFFLINE') {
-      connectionAlert.classList.remove('hidden');
-    } else {
-      connectionAlert.classList.add('hidden');
-    }
-
-    setStatusMainBadge(statusInfo);
-
-    measurementsTimeline.innerHTML = '';
-    if (measurements.length === 0) {
-      measurementsTimeline.innerHTML =
-        '<div class="timeline-item">아직 수신된 데이터가 없습니다.</div>';
-    } else {
-      measurements.forEach((m) => {
-        const div = document.createElement('div');
-        div.className = 'timeline-item';
-        const t = formatKoreanTime(m.createdAt);
-        const shake =
-          m.metrics && typeof m.metrics.shake === 'number'
-            ? m.metrics.shake.toFixed(3)
-            : '-';
-        const bending =
-          m.metrics && typeof m.metrics.bending === 'number'
-            ? m.metrics.bending.toFixed(3)
-            : '-';
-        div.innerHTML = `
-          <div class="timeline-item-header">
-            <span class="timeline-item-time">${t}</span>
-          </div>
-          <div class="timeline-item-metrics">
-            흔들림: ${shake}, 휨: ${bending}
-          </div>
-        `;
-        measurementsTimeline.appendChild(div);
-      });
-    }
-  }
-
-  function setStatusMainBadge(statusInfo) {
-    const el = statusMainBadge;
-    if (!el) return;
-    el.className = 'status-badge';
-    let cls = 'status-safe';
-    switch ((statusInfo.level || 'SAFE').toUpperCase()) {
-      case 'WARN':
-        cls = 'status-warn';
-        break;
-      case 'DANGER':
-        cls = 'status-danger';
-        break;
-      case 'OFFLINE':
-        cls = 'status-offline';
-        break;
-      case 'EMPTY':
-        cls = 'status-empty';
-        break;
-      default:
-        cls = 'status-safe';
-    }
-    el.classList.add(cls);
-    el.textContent = statusInfo.label || '상태';
-  }
-
-  async function onAddressSearch() {
-    const keyword = siteAddressInput.value.trim();
-    if (!keyword) {
-      alert('주소를 입력하세요.');
-      return;
-    }
-    const key = CONFIG.kakaoRestApiKey;
-    if (!key) {
-      alert('카카오 REST API 키가 설정되어 있지 않습니다.');
-      return;
-    }
-    try {
-      const url =
-        'https://dapi.kakao.com/v2/local/search/address.json?query=' +
-        encodeURIComponent(keyword);
-      const res = await fetch(url, {
-        headers: { Authorization: 'KakaoAK ' + key }
-      });
-      if (!res.ok) {
-        alert('주소 검색 실패 (HTTP ' + res.status + ')');
-        return;
-      }
-      const data = await res.json();
-      if (!data.documents || data.documents.length === 0) {
-        alert('검색 결과가 없습니다.');
-        return;
-      }
-      const first = data.documents[0];
-      const lat = parseFloat(first.y);
-      const lng = parseFloat(first.x);
-      siteLatInput.value = lat.toFixed(6);
-      siteLngInput.value = lng.toFixed(6);
-      alert('좌표 계산 완료');
-    } catch (err) {
-      console.error('kakao address error', err);
-      alert('주소 검색 중 오류가 발생했습니다.');
-    }
-  }
-
-  function renderStatusBadgeHtml(statusInfo) {
-    const level = (statusInfo && statusInfo.level) || 'SAFE';
-    const label = (statusInfo && statusInfo.label) || '상태';
-    let cls = 'status-safe';
-    switch (level.toUpperCase()) {
-      case 'WARN':
-        cls = 'status-warn';
-        break;
-      case 'DANGER':
-        cls = 'status-danger';
-        break;
-      case 'OFFLINE':
-        cls = 'status-offline';
-        break;
-      case 'EMPTY':
-        cls = 'status-empty';
-        break;
-      default:
-        cls = 'status-safe';
-    }
-    return `<span class="status-badge ${cls}">${label}</span>`;
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
-  function formatKoreanTime(isoString) {
-    if (!isoString) return '-';
-    try {
-      const d = new Date(isoString);
-      return (
-        d.getFullYear() +
-        '-' +
-        String(d.getMonth() + 1).padStart(2, '0') +
-        '-' +
-        String(d.getDate()).padStart(2, '0') +
-        ' ' +
-        String(d.getHours()).padStart(2, '0') +
-        ':' +
-        String(d.getMinutes()).padStart(2, '0') +
-        ':' +
-        String(d.getSeconds()).padStart(2, '0')
-      );
-    } catch {
-      return isoString;
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    attachEvents();
-    applyRoleUI();
-    initMap();
+    siteSummaryEl.appendChild(pill);
   });
-})();
+}
+
+function renderSites() {
+  renderSummary();
+
+  const statusFilter = statusFilterEl.value;
+  const sizeFilter = sizeFilterEl.value.trim().toLowerCase();
+
+  const filtered = sites.filter((site) => {
+    if (statusFilter !== 'ALL' && site.status !== statusFilter) return false;
+    if (sizeFilter && !(site.buildingSize || '').toLowerCase().includes(sizeFilter)) return false;
+    return true;
+  });
+
+  siteListEl.innerHTML = '';
+
+  if (filtered.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = '등록된 현장이 없거나, 필터에 해당하는 현장이 없습니다.';
+    siteListEl.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach((site) => {
+    const card = document.createElement('article');
+    card.className = 'site-card';
+
+    const main = document.createElement('div');
+    main.className = 'site-main';
+
+    const nameRow = document.createElement('div');
+    nameRow.className = 'site-name-row';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'site-name';
+    nameSpan.textContent = site.name;
+
+    nameRow.appendChild(nameSpan);
+    main.appendChild(nameRow);
+
+    const address = document.createElement('div');
+    address.className = 'site-address';
+    address.textContent = site.address;
+    main.appendChild(address);
+
+    const meta = document.createElement('div');
+    meta.className = 'site-meta';
+
+    const sizePill = document.createElement('span');
+    sizePill.className = 'meta-pill';
+    sizePill.innerHTML = `<strong>규모</strong>${site.buildingSize || '-'}`;
+    meta.appendChild(sizePill);
+
+    const yearPill = document.createElement('span');
+    yearPill.className = 'meta-pill';
+    yearPill.innerHTML = `<strong>준공</strong>${site.buildingYear || '-'}`;
+    meta.appendChild(yearPill);
+
+    const sensorPill = document.createElement('span');
+    sensorPill.className = 'meta-pill';
+    sensorPill.innerHTML = `<strong>센서</strong>${site.sensorCount ?? 0}개`;
+    meta.appendChild(sensorPill);
+
+    if (site.notes) {
+      const notesPill = document.createElement('span');
+      notesPill.className = 'meta-pill';
+      notesPill.innerHTML = `<strong>메모</strong>${site.notes}`;
+      meta.appendChild(notesPill);
+    }
+
+    main.appendChild(meta);
+
+    const statusCol = document.createElement('div');
+    statusCol.className = 'site-status';
+
+    const badge = document.createElement('div');
+    const statusClass =
+      site.status === 'SAFE'
+        ? 'status-safe'
+        : site.status === 'CAUTION'
+        ? 'status-caution'
+        : 'status-alert';
+    badge.className = `status-badge ${statusClass}`;
+
+    const dot = document.createElement('span');
+    dot.className = 'status-dot';
+    badge.appendChild(dot);
+
+    const label = document.createElement('span');
+    label.className = 'status-label-text';
+    let labelText = '';
+    if (site.status === 'SAFE') labelText = '안전';
+    else if (site.status === 'CAUTION') labelText = '위험';
+    else labelText = '경고';
+    label.textContent = labelText;
+    badge.appendChild(label);
+
+    statusCol.appendChild(badge);
+
+    const selectWrap = document.createElement('div');
+    selectWrap.className = 'status-select-wrapper';
+
+    const select = document.createElement('select');
+    ['SAFE', 'CAUTION', 'ALERT'].forEach((value) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      if (value === 'SAFE') opt.textContent = '안전 (초록)';
+      else if (value === 'CAUTION') opt.textContent = '위험 (노랑)';
+      else opt.textContent = '경고 (빨강)';
+
+      if (value === site.status) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    select.addEventListener('change', () => {
+      updateStatus(site.id, select.value);
+    });
+
+    selectWrap.appendChild(select);
+    statusCol.appendChild(selectWrap);
+
+    const metaCol = document.createElement('div');
+    metaCol.className = 'site-meta-time';
+    const created = new Date(site.createdAt || Date.now());
+    const updated = new Date(site.updatedAt || site.createdAt || Date.now());
+    metaCol.textContent = `등록: ${created.toLocaleDateString('ko-KR')} · 수정: ${updated.toLocaleString(
+      'ko-KR'
+    )}`;
+
+    card.appendChild(main);
+    card.appendChild(statusCol);
+    card.appendChild(metaCol);
+
+    siteListEl.appendChild(card);
+  });
+}
+
+async function updateStatus(id, status) {
+  try {
+    const res = await fetch(`${API_BASE}/api/sites/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+
+    if (!res.ok) {
+      alert('상태 변경에 실패했습니다.');
+      return;
+    }
+
+    const updated = await res.json();
+    const idx = sites.findIndex((s) => s.id === id);
+    if (idx !== -1) {
+      sites[idx] = updated;
+      renderSites();
+    }
+  } catch (err) {
+    console.error(err);
+    alert('상태 변경 중 오류가 발생했습니다.');
+  }
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+
+  const payload = {
+    name: nameEl.value.trim(),
+    address: addressEl.value.trim(),
+    latitude: latitudeEl.value || null,
+    longitude: longitudeEl.value || null,
+    sensorCount: sensorCountEl.value ? Number(sensorCountEl.value) : 0,
+    buildingSize: buildingSizeEl.value.trim(),
+    buildingYear: buildingYearEl.value.trim(),
+    notes: notesEl.value.trim()
+  };
+
+  if (!payload.name || !payload.address) {
+    alert('현장 이름과 주소는 필수입니다.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/sites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.message || '현장 등록에 실패했습니다.');
+      return;
+    }
+
+    const created = await res.json();
+    sites.push(created);
+    renderSites();
+
+    formEl.reset();
+    latitudeEl.value = '';
+    longitudeEl.value = '';
+    geocodeResultsEl.innerHTML = '';
+    geocodeResultsEl.style.display = 'none';
+  } catch (err) {
+    console.error(err);
+    alert('현장 등록 중 오류가 발생했습니다.');
+  }
+}
+
+async function searchAddress() {
+  const query = addressEl.value.trim();
+  if (!query) {
+    alert('검색할 주소를 입력하세요.');
+    return;
+  }
+
+  geocodeResultsEl.innerHTML = '';
+  geocodeResultsEl.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/geocode?q=${encodeURIComponent(query)}`);
+    if (!res.ok) {
+      alert('주소 검색에 실패했습니다.');
+      return;
+    }
+
+    const results = await res.json();
+    if (!Array.isArray(results) || results.length === 0) {
+      alert('검색 결과가 없습니다.');
+      return;
+    }
+
+    // 결과 리스트 UI 표시
+    geocodeResultsEl.style.display = 'block';
+    geocodeResultsEl.innerHTML = '';
+
+    results.forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'geocode-results-item';
+      row.textContent = item.address;
+      row.addEventListener('click', () => {
+        addressEl.value = item.address;
+        latitudeEl.value = item.latitude;
+        longitudeEl.value = item.longitude;
+        geocodeResultsEl.innerHTML = '';
+        geocodeResultsEl.style.display = 'none';
+      });
+      geocodeResultsEl.appendChild(row);
+    });
+  } catch (err) {
+    console.error(err);
+    alert('주소 검색 중 오류가 발생했습니다.');
+  }
+}
+
+function init() {
+  fetchSites();
+
+  statusFilterEl.addEventListener('change', renderSites);
+  sizeFilterEl.addEventListener('input', () => {
+    renderSites();
+  });
+
+  formEl.addEventListener('submit', handleSubmit);
+  searchAddressBtn.addEventListener('click', searchAddress);
+}
+
+document.addEventListener('DOMContentLoaded', init);
