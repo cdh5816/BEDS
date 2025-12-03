@@ -34,7 +34,7 @@
               <div>
                 <h2>모니터링 현장 지도</h2>
                 <p class="hint">
-                  BEDS가 관리 중인 건물 위치를 한눈에 볼 수 있습니다.
+                  BEDS가 관리 중인 건물 위치와 안전 상태를 한눈에 볼 수 있습니다.
                   (로그인 없이도 공개 조회)
                 </p>
               </div>
@@ -44,6 +44,9 @@
           <section id="beds-public-list" class="beds-card beds-public-list">
             <div class="beds-card-header">
               <h3>등록된 현장 목록</h3>
+              <p class="hint small">
+                각 현장 옆 색상 뱃지로 안전/주의/경고/신호 끊김 상태를 표시합니다.
+              </p>
             </div>
             <div id="beds-public-sites-container" class="sites-list"></div>
           </section>
@@ -53,7 +56,8 @@
             <div class="beds-card-header">
               <h2>관리자 패널</h2>
               <p class="hint">
-                현장을 등록하고, 카카오 주소 검색으로 좌표를 자동으로 채울 수 있습니다.
+                현장을 등록하고, 카카오 주소 검색으로 위도/경도를 자동으로 채웁니다.
+                (위/경도는 화면에 표시하지 않음)
               </p>
             </div>
             <div class="beds-tabs">
@@ -76,12 +80,17 @@
               <form id="beds-site-form" class="beds-form">
                 <div class="beds-form-row">
                   <label for="site-name">현장 이름</label>
-                  <input id="site-name" type="text" required />
+                  <input id="site-name" type="text" required placeholder="예: 서울 ○○타워 15층" />
                 </div>
                 <div class="beds-form-row">
                   <label for="site-address">주소</label>
                   <div class="beds-input-with-button">
-                    <input id="site-address" type="text" required />
+                    <input
+                      id="site-address"
+                      type="text"
+                      required
+                      placeholder="도로명 주소 입력"
+                    />
                     <button
                       type="button"
                       id="beds-address-search-button"
@@ -91,18 +100,56 @@
                     </button>
                   </div>
                   <p class="hint small">
-                    Kakao REST API 키가 설정된 경우, 주소를 좌표로 변환합니다.
+                    Kakao REST API를 이용해 좌표를 자동으로 계산합니다.
                   </p>
                 </div>
-                <div class="beds-form-row-inline">
+                <div class="beds-form-row-inline hidden">
                   <div>
                     <label for="site-lat">위도 (lat)</label>
-                    <input id="site-lat" type="number" step="0.000001" required />
+                    <input id="site-lat" type="number" step="0.000001" />
                   </div>
                   <div>
                     <label for="site-lng">경도 (lng)</label>
-                    <input id="site-lng" type="number" step="0.000001" required />
+                    <input id="site-lng" type="number" step="0.000001" />
                   </div>
+                </div>
+                <div class="beds-form-row-inline">
+                  <div>
+                    <label for="site-sensor-count">센서 설치 개수</label>
+                    <input
+                      id="site-sensor-count"
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="예: 4"
+                    />
+                  </div>
+                  <div>
+                    <label for="site-build-year">건물 준공 연도</label>
+                    <input
+                      id="site-build-year"
+                      type="number"
+                      min="1900"
+                      max="2100"
+                      placeholder="예: 2010"
+                    />
+                  </div>
+                </div>
+                <div class="beds-form-row">
+                  <label for="site-building-size">건물 규모</label>
+                  <input
+                    id="site-building-size"
+                    type="text"
+                    placeholder="예: 지상 20층 / 연면적 12,000㎡"
+                  />
+                </div>
+                <div class="beds-form-row">
+                  <label for="site-notes">특이사항 / 메모</label>
+                  <textarea
+                    id="site-notes"
+                    rows="2"
+                    placeholder="예: 기둥 3개 구간에 센서 집중 설치, 지하 2층 주차장 진동 민감 구간 등"
+                  ></textarea>
                 </div>
                 <button type="submit" class="beds-button primary full">
                   현장 등록
@@ -117,7 +164,7 @@
             <div class="beds-card-header">
               <h2>내 건물 실시간 상태</h2>
               <p class="hint">
-                고객 계정으로 로그인하면, 연결된 현장의 현재 흔들림/휨 상태를
+                고객 계정으로 로그인하면, 연결된 현장의 흔들림/휨 상태와 센서 연결 상태를
                 실시간으로 확인할 수 있습니다.
               </p>
             </div>
@@ -126,7 +173,15 @@
               <select id="customer-site-select"></select>
             </div>
             <div id="beds-connection-alert" class="beds-connection-alert hidden">
-              ⚠ 센서 신호가 일정 시간 이상 수신되지 않았습니다.
+              ⚠ 일부 센서에서 신호가 끊겼거나 일정 시간 이상 수신이 없습니다.
+            </div>
+            <div class="beds-status-row">
+              <div class="status-main">
+                <span class="status-main-label">현재 상태</span>
+                <span id="status-main-badge" class="status-badge status-safe">
+                  안전
+                </span>
+              </div>
             </div>
             <div id="beds-customer-status" class="status-grid">
               <div class="status-card">
@@ -140,7 +195,7 @@
                 <div class="unit">상대값</div>
               </div>
               <div class="status-card">
-                <div class="label">센서 수</div>
+                <div class="label">센서 개수</div>
                 <div id="status-sensor-count" class="value">-</div>
                 <div class="unit">개</div>
               </div>
@@ -158,6 +213,11 @@
         <div class="beds-modal-backdrop"></div>
         <div class="beds-modal-content">
           <h2>BEDS 로그인</h2>
+          <p class="beds-modal-hint">
+            데모 계정:<br />
+            관리자: <code>admin@beds.local / bedsadmin123!</code><br />
+            고객: <code>customer@beds.local / bedscustomer123!</code>
+          </p>
           <form id="beds-login-form" class="beds-form">
             <div class="beds-form-row">
               <label for="login-email">이메일</label>

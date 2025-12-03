@@ -1,10 +1,10 @@
 
 // © AIRX (individual business) - All rights reserved.
-// BEDS v2 frontend logic (desktop & mobile responsive).
+// BEDS v2 frontend logic.
 
 (function () {
   const API_BASE = '';
-  const CONFIG = (window.BEDS_CONFIG || {});
+  const CONFIG = window.BEDS_CONFIG || {};
 
   const loginButton = document.getElementById('beds-login-button');
   const logoutButton = document.getElementById('beds-logout-button');
@@ -28,6 +28,7 @@
   const statusBending = document.getElementById('status-bending');
   const statusSensorCount = document.getElementById('status-sensor-count');
   const measurementsTimeline = document.getElementById('beds-measurements-timeline');
+  const statusMainBadge = document.getElementById('status-main-badge');
 
   const mapElement = document.getElementById('beds-map');
   const publicSitesContainer = document.getElementById('beds-public-sites-container');
@@ -37,6 +38,10 @@
   const siteAddressInput = document.getElementById('site-address');
   const siteLatInput = document.getElementById('site-lat');
   const siteLngInput = document.getElementById('site-lng');
+  const siteSensorCountInput = document.getElementById('site-sensor-count');
+  const siteBuildingSizeInput = document.getElementById('site-building-size');
+  const siteBuildYearInput = document.getElementById('site-build-year');
+  const siteNotesInput = document.getElementById('site-notes');
   const addressSearchButton = document.getElementById('beds-address-search-button');
 
   let map;
@@ -165,11 +170,23 @@
         const address = siteAddressInput.value.trim();
         const lat = parseFloat(siteLatInput.value);
         const lng = parseFloat(siteLngInput.value);
+        const sensorCountVal = siteSensorCountInput.value.trim();
+        const buildingSize = siteBuildingSizeInput.value.trim();
+        const buildYearVal = siteBuildYearInput.value.trim();
+        const notes = siteNotesInput.value.trim();
 
-        if (!name || !address || isNaN(lat) || isNaN(lng)) {
-          alert('모든 필드를 올바르게 입력해주세요.');
+        if (!name || !address) {
+          alert('현장 이름과 주소를 입력해주세요.');
           return;
         }
+        if (isNaN(lat) || isNaN(lng)) {
+          alert('주소 검색 버튼으로 좌표를 먼저 계산해주세요.');
+          return;
+        }
+
+        const sensorCount = sensorCountVal ? parseInt(sensorCountVal, 10) : null;
+        const buildYear = buildYearVal ? parseInt(buildYearVal, 10) : null;
+
         const token = getToken();
         if (!token) {
           alert('관리자 로그인이 필요합니다.');
@@ -183,7 +200,16 @@
               'Content-Type': 'application/json',
               Authorization: 'Bearer ' + token
             },
-            body: JSON.stringify({ name, address, lat, lng })
+            body: JSON.stringify({
+              name,
+              address,
+              lat,
+              lng,
+              sensorCountPlanned: isNaN(sensorCount) ? null : sensorCount,
+              buildingSize: buildingSize || '',
+              buildYear: isNaN(buildYear) ? null : buildYear,
+              notes
+            })
           });
           if (!res.ok) {
             const err = await res.json().catch(() => null);
@@ -196,6 +222,10 @@
           siteAddressInput.value = '';
           siteLatInput.value = '';
           siteLngInput.value = '';
+          siteSensorCountInput.value = '';
+          siteBuildingSizeInput.value = '';
+          siteBuildYearInput.value = '';
+          siteNotesInput.value = '';
           loadPublicSites();
           loadAdminSites();
         } catch (err) {
@@ -206,7 +236,7 @@
     }
 
     if (addressSearchButton) {
-      if (!CONFIG.kakaoRestApiKey || CONFIG.kakaoRestApiKey === 'YOUR_KAKAO_REST_API_KEY_HERE') {
+      if (!CONFIG.kakaoRestApiKey) {
         addressSearchButton.disabled = true;
         addressSearchButton.textContent = 'API 키 필요';
       } else {
@@ -260,11 +290,14 @@
       markersLayer.clearLayers();
       sites.forEach((s) => {
         if (typeof s.lat !== 'number' || typeof s.lng !== 'number') return;
+        const badgeHtml = renderStatusBadgeHtml(s.status);
         const marker = L.marker([s.lat, s.lng]);
         marker.bindPopup(
           `<div class="beds-popup"><strong>${escapeHtml(
             s.name
-          )}</strong><br/><span>${escapeHtml(s.address)}</span></div>`
+          )}</strong><br/><span>${escapeHtml(
+            s.address
+          )}</span><br/>${badgeHtml}</div>`
         );
         marker.addTo(markersLayer);
       });
@@ -277,12 +310,26 @@
         sites.forEach((s) => {
           const div = document.createElement('div');
           div.className = 'site-item';
+          const badgeHtml = renderStatusBadgeHtml(s.status);
+          const sizeText = s.buildingSize ? escapeHtml(s.buildingSize) : '규모 정보 없음';
+          const buildYearText = s.buildYear ? `${s.buildYear}년 준공` : '준공연도 미입력';
+          const sensorText =
+            typeof s.sensorCountPlanned === 'number'
+              ? `센서 계획: ${s.sensorCountPlanned}개`
+              : '센서 개수 미입력';
+          const notesText = s.notes ? escapeHtml(s.notes) : '';
           div.innerHTML = `
-            <div class="site-item-name">${escapeHtml(s.name)}</div>
-            <div class="site-item-address">${escapeHtml(s.address)}</div>
-            <div class="site-item-coords">lat ${s.lat.toFixed(
-              5
-            )}, lng ${s.lng.toFixed(5)}</div>
+            <div class="site-item-top">
+              <div class="site-item-name">${escapeHtml(s.name)}</div>
+              ${badgeHtml}
+            </div>
+            <div class="site-item-meta">${escapeHtml(s.address)}</div>
+            <div class="site-item-meta">${sizeText} · ${buildYearText} · ${sensorText}</div>
+            ${
+              notesText
+                ? `<div class="site-item-tags">메모: ${notesText}</div>`
+                : ''
+            }
           `;
           publicSitesContainer.appendChild(div);
         });
@@ -310,12 +357,26 @@
         sites.forEach((s) => {
           const div = document.createElement('div');
           div.className = 'site-item';
+          const badgeHtml = renderStatusBadgeHtml(s.status);
+          const sizeText = s.buildingSize ? escapeHtml(s.buildingSize) : '규모 정보 없음';
+          const buildYearText = s.buildYear ? `${s.buildYear}년 준공` : '준공연도 미입력';
+          const sensorText =
+            typeof s.sensorCountPlanned === 'number'
+              ? `센서 계획: ${s.sensorCountPlanned}개`
+              : '센서 개수 미입력';
+          const notesText = s.notes ? escapeHtml(s.notes) : '';
           div.innerHTML = `
-            <div class="site-item-name">${escapeHtml(s.name)}</div>
-            <div class="site-item-address">${escapeHtml(s.address)}</div>
-            <div class="site-item-coords">lat ${s.lat.toFixed(
-              5
-            )}, lng ${s.lng.toFixed(5)}</div>
+            <div class="site-item-top">
+              <div class="site-item-name">${escapeHtml(s.name)}</div>
+              ${badgeHtml}
+            </div>
+            <div class="site-item-meta">${escapeHtml(s.address)}</div>
+            <div class="site-item-meta">${sizeText} · ${buildYearText} · ${sensorText}</div>
+            ${
+              notesText
+                ? `<div class="site-item-tags">메모: ${notesText}</div>`
+                : ''
+            }
           `;
           adminSitesList.appendChild(div);
         });
@@ -365,6 +426,7 @@
     statusSensorCount.textContent = '-';
     connectionAlert.classList.add('hidden');
     measurementsTimeline.innerHTML = '';
+    setStatusMainBadge({ level: 'SAFE', label: '안전' });
   }
 
   function startStatusPolling() {
@@ -404,6 +466,7 @@
     const sensors = data.sensors || [];
     const latest = data.latestMeasurement || null;
     const measurements = data.measurements || [];
+    const statusInfo = data.status || { level: 'SAFE', label: '안전' };
 
     statusSensorCount.textContent = sensors.length.toString();
     if (latest && latest.metrics) {
@@ -418,11 +481,13 @@
       statusBending.textContent = '-';
     }
 
-    if (data.connectionLost) {
+    if (data.connectionLost || statusInfo.level === 'OFFLINE') {
       connectionAlert.classList.remove('hidden');
     } else {
       connectionAlert.classList.add('hidden');
     }
+
+    setStatusMainBadge(statusInfo);
 
     measurementsTimeline.innerHTML = '';
     if (measurements.length === 0) {
@@ -444,7 +509,6 @@
         div.innerHTML = `
           <div class="timeline-item-header">
             <span class="timeline-item-time">${t}</span>
-            <span>센서 ID: ${shortenId(m.sensorId || '')}</span>
           </div>
           <div class="timeline-item-metrics">
             흔들림: ${shake}, 휨: ${bending}
@@ -455,6 +519,31 @@
     }
   }
 
+  function setStatusMainBadge(statusInfo) {
+    const el = statusMainBadge;
+    if (!el) return;
+    el.className = 'status-badge';
+    let cls = 'status-safe';
+    switch ((statusInfo.level || 'SAFE').toUpperCase()) {
+      case 'WARN':
+        cls = 'status-warn';
+        break;
+      case 'DANGER':
+        cls = 'status-danger';
+        break;
+      case 'OFFLINE':
+        cls = 'status-offline';
+        break;
+      case 'EMPTY':
+        cls = 'status-empty';
+        break;
+      default:
+        cls = 'status-safe';
+    }
+    el.classList.add(cls);
+    el.textContent = statusInfo.label || '상태';
+  }
+
   async function onAddressSearch() {
     const keyword = siteAddressInput.value.trim();
     if (!keyword) {
@@ -462,8 +551,8 @@
       return;
     }
     const key = CONFIG.kakaoRestApiKey;
-    if (!key || key === 'YOUR_KAKAO_REST_API_KEY_HERE') {
-      alert('카카오 REST API 키를 config.js에 설정해야 합니다.');
+    if (!key) {
+      alert('카카오 REST API 키가 설정되어 있지 않습니다.');
       return;
     }
     try {
@@ -487,10 +576,34 @@
       const lng = parseFloat(first.x);
       siteLatInput.value = lat.toFixed(6);
       siteLngInput.value = lng.toFixed(6);
+      alert('좌표 계산 완료');
     } catch (err) {
       console.error('kakao address error', err);
       alert('주소 검색 중 오류가 발생했습니다.');
     }
+  }
+
+  function renderStatusBadgeHtml(statusInfo) {
+    const level = (statusInfo && statusInfo.level) || 'SAFE';
+    const label = (statusInfo && statusInfo.label) || '상태';
+    let cls = 'status-safe';
+    switch (level.toUpperCase()) {
+      case 'WARN':
+        cls = 'status-warn';
+        break;
+      case 'DANGER':
+        cls = 'status-danger';
+        break;
+      case 'OFFLINE':
+        cls = 'status-offline';
+        break;
+      case 'EMPTY':
+        cls = 'status-empty';
+        break;
+      default:
+        cls = 'status-safe';
+    }
+    return `<span class="status-badge ${cls}">${label}</span>`;
   }
 
   function escapeHtml(str) {
@@ -522,12 +635,6 @@
     } catch {
       return isoString;
     }
-  }
-
-  function shortenId(id) {
-    if (!id) return '-';
-    if (id.length <= 8) return id;
-    return id.slice(0, 4) + '…' + id.slice(-4);
   }
 
   document.addEventListener('DOMContentLoaded', () => {
