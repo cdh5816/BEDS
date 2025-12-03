@@ -1,4 +1,7 @@
 {
   "users": [],
-  "buildings": []
+  "sites": [],
+  "sensors": [],
+  "measurements": [],
+  "alerts": []
 }
