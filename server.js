@@ -51,13 +51,18 @@ if (sitesData.sites.length === 0) {
     id: 'sample-seoul-tower-a',
     name: '서울역 타워 A동',
     address: '서울특별시 중구 세종대로 1XX',
+    detailAddress: '',
     latitude: 37.5551,
     longitude: 126.9707,
     sensorCount: 3,
     buildingSize: '지상 20F, 연면적 12,000㎡',
     buildingYear: '2010',
     notes: '데모용 샘플 현장',
-    status: 'SAFE'
+    status: 'SAFE',
+    kpiTodayEvents: 0,
+    kpiTodayMaxMag: 0,
+    kpiTodayMaxDrift: 0,
+    kpi30dAlerts: 0
   };
   sitesData.sites.push(sampleSite);
   saveJson(sitesFile, sitesData);
@@ -107,33 +112,102 @@ app.post('/api/sites', (req, res) => {
   const {
     name,
     address,
+    detailAddress,
     latitude,
     longitude,
     sensorCount,
     buildingSize,
     buildingYear,
-    notes
+    notes,
+    status,
+    kpiTodayEvents,
+    kpiTodayMaxMag,
+    kpiTodayMaxDrift,
+    kpi30dAlerts
   } = req.body || {};
   if (!name || !address) {
     return res.status(400).json({ ok: false, message: 'name과 address는 필수입니다.' });
   }
   const id = 'site-' + Date.now().toString(36);
-  const status = 'SAFE';
+  const siteStatus = status || 'SAFE';
   const site = {
     id,
     name,
     address,
+    detailAddress: detailAddress || '',
     latitude: typeof latitude === 'number' ? latitude : null,
     longitude: typeof longitude === 'number' ? longitude : null,
     sensorCount: typeof sensorCount === 'number' ? sensorCount : 0,
     buildingSize: buildingSize || '',
     buildingYear: buildingYear || '',
     notes: notes || '',
-    status
+    status: siteStatus,
+    kpiTodayEvents: typeof kpiTodayEvents === 'number' ? kpiTodayEvents : 0,
+    kpiTodayMaxMag: typeof kpiTodayMaxMag === 'number' ? kpiTodayMaxMag : 0,
+    kpiTodayMaxDrift: typeof kpiTodayMaxDrift === 'number' ? kpiTodayMaxDrift : 0,
+    kpi30dAlerts: typeof kpi30dAlerts === 'number' ? kpi30dAlerts : 0
   };
   sitesData.sites.push(site);
   saveJson(sitesFile, sitesData);
   res.status(201).json({ ok: true, site });
+});
+
+
+
+// 사이트 단일 조회
+app.get('/api/sites/:id', (req, res) => {
+  const site = sitesData.sites.find((s) => s.id === req.params.id);
+  if (!site) {
+    return res.status(404).json({ ok: false, message: '사이트를 찾을 수 없습니다.' });
+  }
+  res.json({ ok: true, site });
+});
+
+// 사이트 수정
+app.put('/api/sites/:id', (req, res) => {
+  const idx = sitesData.sites.findIndex((s) => s.id === req.params.id);
+  if (idx === -1) {
+    return res.status(404).json({ ok: false, message: '사이트를 찾을 수 없습니다.' });
+  }
+  const current = sitesData.sites[idx];
+  const body = req.body || {};
+  const updated = {
+    ...current,
+    name: body.name !== undefined ? body.name : current.name,
+    address: body.address !== undefined ? body.address : current.address,
+    detailAddress: body.detailAddress !== undefined ? body.detailAddress : (current.detailAddress || ''),
+    latitude: typeof body.latitude === 'number' ? body.latitude : current.latitude,
+    longitude: typeof body.longitude === 'number' ? body.longitude : current.longitude,
+    sensorCount: typeof body.sensorCount === 'number' ? body.sensorCount : current.sensorCount,
+    buildingSize: body.buildingSize !== undefined ? body.buildingSize : current.buildingSize,
+    buildingYear: body.buildingYear !== undefined ? body.buildingYear : current.buildingYear,
+    notes: body.notes !== undefined ? body.notes : current.notes,
+    status: body.status || current.status || 'SAFE',
+    kpiTodayEvents: typeof body.kpiTodayEvents === 'number' ? body.kpiTodayEvents : (current.kpiTodayEvents || 0),
+    kpiTodayMaxMag: typeof body.kpiTodayMaxMag === 'number' ? body.kpiTodayMaxMag : (current.kpiTodayMaxMag || 0),
+    kpiTodayMaxDrift: typeof body.kpiTodayMaxDrift === 'number' ? body.kpiTodayMaxDrift : (current.kpiTodayMaxDrift || 0),
+    kpi30dAlerts: typeof body.kpi30dAlerts === 'number' ? body.kpi30dAlerts : (current.kpi30dAlerts || 0)
+  };
+  sitesData.sites[idx] = updated;
+  saveJson(sitesFile, sitesData);
+  res.json({ ok: true, site: updated });
+});
+
+// 사이트 삭제
+app.delete('/api/sites/:id', (req, res) => {
+  const idx = sitesData.sites.findIndex((s) => s.id === req.params.id);
+  if (idx === -1) {
+    return res.status(404).json({ ok: false, message: '사이트를 찾을 수 없습니다.' });
+  }
+  const removed = sitesData.sites.splice(idx, 1)[0];
+  // 삭제된 사이트를 참조하던 사용자들의 siteIds도 정리
+  usersData.users = usersData.users.map((u) => ({
+    ...u,
+    siteIds: Array.isArray(u.siteIds) ? u.siteIds.filter((id) => id !== removed.id) : []
+  }));
+  saveJson(sitesFile, sitesData);
+  saveJson(usersFile, usersData);
+  res.json({ ok: true });
 });
 
 // Users API (고객 계정 관리)
@@ -171,5 +245,5 @@ app.post('/api/users', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`BEDS_v3 server running on port ${PORT}`);
+  console.log(`Deb's server running on port ${PORT}`);
 });
