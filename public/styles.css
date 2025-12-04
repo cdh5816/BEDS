@@ -99,9 +99,9 @@ body {
 
 /* 로그인 패널 */
 .login-panel {
-  position: fixed;
-  top: 4.5rem;
-  right: 1rem;
+  position: absolute;
+  top: 2.6rem;
+  right: 0;
   width: 260px;
   background: rgba(15,23,42,0.98);
   border-radius: 1rem;
@@ -109,7 +109,7 @@ body {
   padding: 0.75rem 0.9rem 0.9rem;
   box-shadow: 0 18px 40px rgba(0,0,0,0.6);
   display: none;
-  z-index: 50;
+  z-index: 30;
 }
 
 .login-panel.open {
@@ -611,27 +611,4 @@ body {
 .user-card-sites {
   font-size: 10px;
   color: #9ca3af;
-}
-
-@media (max-width: 768px) {
-  .login-panel {
-    left: 1rem;
-    right: 1rem;
-    width: auto;
-  }
-}
-
-.selected-site-detail {
-  margin-top: 0.75rem;
-}
-
-.selected-site-detail .detail-section {
-  margin-bottom: 0.75rem;
-}
-
-.selected-site-detail .detail-section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #e5e7eb;
-  margin-bottom: 0.25rem;
 }

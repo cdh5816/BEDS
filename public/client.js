@@ -125,8 +125,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderSiteOptions() {
     if (!siteSelect) return;
     siteSelect.innerHTML = '';
-    const allowedIds = user && Array.isArray(user.siteIds) ? user.siteIds : null;
-    const visibleSites = allowedIds ? sites.filter((s) => allowedIds.includes(s.id)) : sites;
+    let allowedIds = null;
+    if (user && user.role === 'CLIENT') {
+      if (Array.isArray(user.siteIds)) {
+        allowedIds = user.siteIds;
+      } else if (typeof user.siteIds === 'string' && user.siteIds.trim()) {
+        allowedIds = user.siteIds.split(',').map((s) => s.trim());
+      }
+    }
+    const visibleSites = Array.isArray(allowedIds) && allowedIds.length
+      ? sites.filter((s) => allowedIds.includes(s.id))
+      : sites;
 
     if (!visibleSites.length) {
       const opt = document.createElement('option');

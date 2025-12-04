@@ -109,6 +109,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.appendChild(header);
       card.appendChild(sitesSpan);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn btn-secondary btn-xs';
+      deleteBtn.textContent = '계정 삭제';
+      deleteBtn.addEventListener('click', async () => {
+        if (!confirm(`정말로 계정 "${u.username}"을(를) 삭제하시겠습니까?`)) return;
+        try {
+          const res = await fetch(`/api/users/${encodeURIComponent(u.id)}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            alert(data.message || '계정 삭제에 실패했습니다.');
+            return;
+          }
+          await loadUsers();
+        } catch (err) {
+          console.error(err);
+          alert('서버 오류로 계정 삭제에 실패했습니다.');
+        }
+      });
+      card.appendChild(deleteBtn);
+
       userListEl.appendChild(card);
     });
   }
