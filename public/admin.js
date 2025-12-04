@@ -146,10 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
       item.appendChild(deleteBtn);
 
       item.addEventListener('click', () => {
-        selectedSiteId = s.id;
-        renderSites();
-        focusOnSite(s);
-      });
+  selectedSiteId = s.id;
+  renderSites();
+
+  // 지도를 현장 위치로 이동
+  if (window.map && s.latitude && s.longitude) {
+    window.map.setView([s.latitude, s.longitude], 17);
+  }
+});
+
 
       siteListEl.appendChild(item);
     });
