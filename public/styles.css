@@ -612,3 +612,21 @@ body {
   font-size: 10px;
   color: #9ca3af;
 }
+
+/* 모바일 로그인 패널이 지도에 가려지지 않게 */
+.login-panel {
+  position: fixed !important;
+  top: 4.5rem !important;
+  right: 1rem !important;
+  left: 1rem !important;
+  width: auto !important;
+  z-index: 9999 !important;
+  background: rgba(15,23,42,0.98);
+  border-radius: 1rem;
+  border: 1px solid rgba(51,65,85,0.9);
+}
+
+.leaflet-container {
+  z-index: 1 !important;
+}
+
