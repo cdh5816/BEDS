@@ -219,6 +219,23 @@ app.delete('/api/users/:id', (req, res) => {
   saveJson(usersFile, usersData);
   return res.json({ ok: true });
 });
+// ---------------------------------------------
+//   고객의 siteIds 업데이트 API
+// ---------------------------------------------
+app.put('/api/users/:id/sites', (req, res) => {
+  const { id } = req.params;
+  const { siteIds } = req.body;
+
+  const user = usersData.users.find(u => u.id === id);
+  if (!user) {
+    return res.status(404).json({ ok: false, message: 'User not found' });
+  }
+
+  user.siteIds = Array.isArray(siteIds) ? siteIds : [];
+  saveJson(usersFile, usersData);
+
+  return res.json({ ok: true, siteIds: user.siteIds });
+});
 
 app.listen(PORT, () => {
   console.log(`Deb's server running on port ${PORT}`);
