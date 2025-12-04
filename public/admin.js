@@ -51,6 +51,164 @@ document.addEventListener('DOMContentLoaded', () => {
     }).addTo(map);
   }
 
+  function renderSelectedSiteDetail() {
+    const container = document.getElementById('selected-site-detail');
+    if (!container) return;
+    const site = sites.find((s) => s.id === selectedSiteId);
+    if (!site) {
+      container.innerHTML = '<p class="help-text">왼쪽 목록에서 현장을 선택하면 상세 정보와 계측값을 수정할 수 있습니다.</p>';
+      return;
+    }
+
+    const fullAddress = [site.address || '', site.detailAddress || ''].filter(Boolean).join(' ').trim();
+    const kpiTodayEvents = typeof site.kpiTodayEvents === 'number' ? site.kpiTodayEvents : 0;
+    const kpiTodayMaxMag = typeof site.kpiTodayMaxMag === 'number' ? site.kpiTodayMaxMag : 0;
+    const kpiTodayMaxDrift = typeof site.kpiTodayMaxDrift === 'number' ? site.kpiTodayMaxDrift : 0;
+    const kpi30dAlerts = typeof site.kpi30dAlerts === 'number' ? site.kpi30dAlerts : 0;
+    const status = site.status || 'SAFE';
+
+    container.innerHTML = `
+      <div class="detail-section">
+        <div class="detail-section-title">기본 정보</div>
+        <div class="form-row">
+          <label>현장명</label>
+          <div class="text-xs text-slate-200">${site.name}</div>
+        </div>
+        <div class="form-row">
+          <label>주소</label>
+          <div class="text-xs text-slate-200">${fullAddress || '-'}</div>
+        </div>
+        <div class="form-row">
+          <label for="detail-detailAddress">상세주소</label>
+          <input type="text" id="detail-detailAddress" value="${site.detailAddress || ''}" placeholder="예: 10층 1001호" />
+        </div>
+        <div class="form-row">
+          <label for="detail-status">상태</label>
+          <select id="detail-status">
+            <option value="SAFE"${status === 'SAFE' ? ' selected' : ''}>안전</option>
+            <option value="CAUTION"${status === 'CAUTION' ? ' selected' : ''}>주의</option>
+            <option value="ALERT"${status === 'ALERT' ? ' selected' : ''}>경고</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">센서 및 건물 정보</div>
+        <div class="form-row">
+          <label for="detail-sensorCount">센서 설치 개수</label>
+          <input type="number" id="detail-sensorCount" value="${typeof site.sensorCount === 'number' ? site.sensorCount : 0}" min="0" />
+        </div>
+        <div class="form-row">
+          <label for="detail-buildingSize">건물 규모</label>
+          <input type="text" id="detail-buildingSize" value="${site.buildingSize || ''}" placeholder="예: 지상 20F, 연면적 12,000㎡" />
+        </div>
+        <div class="form-row">
+          <label for="detail-buildingYear">준공 연도</label>
+          <input type="text" id="detail-buildingYear" value="${site.buildingYear || ''}" placeholder="예: 2005" />
+        </div>
+        <div class="form-row">
+          <label for="detail-notes">비고 (분류용)</label>
+          <textarea id="detail-notes" rows="2" placeholder="예: 병원동, 내진설계 적용, B동만 계측 등">${site.notes || ''}</textarea>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">계측값 (고객 페이지에 표시)</div>
+        <div class="form-row">
+          <label for="detail-kpi-events">오늘 이벤트 수</label>
+          <input type="number" id="detail-kpi-events" min="0" value="${kpiTodayEvents}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-maxmag">오늘 최대 진동 (g)</label>
+          <input type="number" id="detail-kpi-maxmag" step="0.01" min="0" value="${kpiTodayMaxMag}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-maxdrift">오늘 최대 변위 (mm)</label>
+          <input type="number" id="detail-kpi-maxdrift" step="0.01" min="0" value="${kpiTodayMaxDrift}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-alerts">최근 30일 경고 횟수</label>
+          <input type="number" id="detail-kpi-alerts" min="0" value="${kpi30dAlerts}" />
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <button type="button" id="detail-save" class="btn btn-primary">변경 사항 저장</button>
+        <button type="button" id="detail-delete" class="btn btn-danger" style="margin-left:0.5rem;">현장 삭제</button>
+      </div>
+    `;
+
+    const saveBtn = container.querySelector('#detail-save');
+    const deleteBtn = container.querySelector('#detail-delete');
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        try {
+          const body = {
+            detailAddress: container.querySelector('#detail-detailAddress').value.trim(),
+            status: container.querySelector('#detail-status').value,
+            sensorCount: parseInt(container.querySelector('#detail-sensorCount').value || '0', 10),
+            buildingSize: container.querySelector('#detail-buildingSize').value.trim(),
+            buildingYear: container.querySelector('#detail-buildingYear').value.trim(),
+            notes: container.querySelector('#detail-notes').value.trim(),
+            kpiTodayEvents: parseInt(container.querySelector('#detail-kpi-events').value || '0', 10),
+            kpiTodayMaxMag: parseFloat(container.querySelector('#detail-kpi-maxmag').value || '0'),
+            kpiTodayMaxDrift: parseFloat(container.querySelector('#detail-kpi-maxdrift').value || '0'),
+            kpi30dAlerts: parseInt(container.querySelector('#detail-kpi-alerts').value || '0', 10)
+          };
+          const res = await fetch(`/api/sites/${encodeURIComponent(site.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) {
+            alert('현장 정보를 저장하는 중 오류가 발생했습니다.');
+            return;
+          }
+          const data = await res.json();
+          const updated = data && data.site ? data.site : null;
+          if (updated) {
+            const idx = sites.findIndex((s) => s.id === updated.id);
+            if (idx !== -1) {
+              sites[idx] = updated;
+            }
+            renderSites();
+            renderSelectedSiteDetail();
+            alert('저장되었습니다.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('서버 오류로 저장에 실패했습니다.');
+        }
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        if (!window.confirm('정말 이 현장을 삭제하시겠습니까?\n연결된 고객 계정의 권한에서도 제거됩니다.')) {
+          return;
+        }
+        try {
+          const res = await fetch(`/api/sites/${encodeURIComponent(site.id)}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) {
+            alert('현장을 삭제하는 중 오류가 발생했습니다.');
+            return;
+          }
+          sites = sites.filter((s) => s.id !== site.id);
+          selectedSiteId = null;
+          renderSites();
+          renderSelectedSiteDetail();
+          alert('삭제되었습니다.');
+        } catch (err) {
+          console.error(err);
+          alert('서버 오류로 삭제에 실패했습니다.');
+        }
+      });
+    }
+  }
+
   function renderMarkers(currentSites) {
     if (!map) return;
     markers.forEach((m) => map.removeLayer(m));
@@ -59,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentSites.forEach((s) => {
       if (typeof s.latitude === 'number' && typeof s.longitude === 'number') {
         const marker = L.marker([s.latitude, s.longitude]).addTo(map);
-        marker.bindPopup(`<strong>${s.name}</strong><br>${s.address || ''}`);
+        marker.bindPopup(`<strong>${s.name}</strong><br>${[[s.address || '', s.detailAddress || ''].filter(Boolean).join(' '), s.detailAddress || ''].filter(Boolean).join(' ')}`);
         markers.push(marker);
         bounds.push([s.latitude, s.longitude]);
       }
@@ -69,9 +227,325 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderSelectedSiteDetail() {
+    const container = document.getElementById('selected-site-detail');
+    if (!container) return;
+    const site = sites.find((s) => s.id === selectedSiteId);
+    if (!site) {
+      container.innerHTML = '<p class="help-text">왼쪽 목록에서 현장을 선택하면 상세 정보와 계측값을 수정할 수 있습니다.</p>';
+      return;
+    }
+
+    const fullAddress = [site.address || '', site.detailAddress || ''].filter(Boolean).join(' ').trim();
+    const kpiTodayEvents = typeof site.kpiTodayEvents === 'number' ? site.kpiTodayEvents : 0;
+    const kpiTodayMaxMag = typeof site.kpiTodayMaxMag === 'number' ? site.kpiTodayMaxMag : 0;
+    const kpiTodayMaxDrift = typeof site.kpiTodayMaxDrift === 'number' ? site.kpiTodayMaxDrift : 0;
+    const kpi30dAlerts = typeof site.kpi30dAlerts === 'number' ? site.kpi30dAlerts : 0;
+    const status = site.status || 'SAFE';
+
+    container.innerHTML = `
+      <div class="detail-section">
+        <div class="detail-section-title">기본 정보</div>
+        <div class="form-row">
+          <label>현장명</label>
+          <div class="text-xs text-slate-200">${site.name}</div>
+        </div>
+        <div class="form-row">
+          <label>주소</label>
+          <div class="text-xs text-slate-200">${fullAddress || '-'}</div>
+        </div>
+        <div class="form-row">
+          <label for="detail-detailAddress">상세주소</label>
+          <input type="text" id="detail-detailAddress" value="${site.detailAddress || ''}" placeholder="예: 10층 1001호" />
+        </div>
+        <div class="form-row">
+          <label for="detail-status">상태</label>
+          <select id="detail-status">
+            <option value="SAFE"${status === 'SAFE' ? ' selected' : ''}>안전</option>
+            <option value="CAUTION"${status === 'CAUTION' ? ' selected' : ''}>주의</option>
+            <option value="ALERT"${status === 'ALERT' ? ' selected' : ''}>경고</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">센서 및 건물 정보</div>
+        <div class="form-row">
+          <label for="detail-sensorCount">센서 설치 개수</label>
+          <input type="number" id="detail-sensorCount" value="${typeof site.sensorCount === 'number' ? site.sensorCount : 0}" min="0" />
+        </div>
+        <div class="form-row">
+          <label for="detail-buildingSize">건물 규모</label>
+          <input type="text" id="detail-buildingSize" value="${site.buildingSize || ''}" placeholder="예: 지상 20F, 연면적 12,000㎡" />
+        </div>
+        <div class="form-row">
+          <label for="detail-buildingYear">준공 연도</label>
+          <input type="text" id="detail-buildingYear" value="${site.buildingYear || ''}" placeholder="예: 2005" />
+        </div>
+        <div class="form-row">
+          <label for="detail-notes">비고 (분류용)</label>
+          <textarea id="detail-notes" rows="2" placeholder="예: 병원동, 내진설계 적용, B동만 계측 등">${site.notes || ''}</textarea>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">계측값 (고객 페이지에 표시)</div>
+        <div class="form-row">
+          <label for="detail-kpi-events">오늘 이벤트 수</label>
+          <input type="number" id="detail-kpi-events" min="0" value="${kpiTodayEvents}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-maxmag">오늘 최대 진동 (g)</label>
+          <input type="number" id="detail-kpi-maxmag" step="0.01" min="0" value="${kpiTodayMaxMag}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-maxdrift">오늘 최대 변위 (mm)</label>
+          <input type="number" id="detail-kpi-maxdrift" step="0.01" min="0" value="${kpiTodayMaxDrift}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-alerts">최근 30일 경고 횟수</label>
+          <input type="number" id="detail-kpi-alerts" min="0" value="${kpi30dAlerts}" />
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <button type="button" id="detail-save" class="btn btn-primary">변경 사항 저장</button>
+        <button type="button" id="detail-delete" class="btn btn-danger" style="margin-left:0.5rem;">현장 삭제</button>
+      </div>
+    `;
+
+    const saveBtn = container.querySelector('#detail-save');
+    const deleteBtn = container.querySelector('#detail-delete');
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        try {
+          const body = {
+            detailAddress: container.querySelector('#detail-detailAddress').value.trim(),
+            status: container.querySelector('#detail-status').value,
+            sensorCount: parseInt(container.querySelector('#detail-sensorCount').value || '0', 10),
+            buildingSize: container.querySelector('#detail-buildingSize').value.trim(),
+            buildingYear: container.querySelector('#detail-buildingYear').value.trim(),
+            notes: container.querySelector('#detail-notes').value.trim(),
+            kpiTodayEvents: parseInt(container.querySelector('#detail-kpi-events').value || '0', 10),
+            kpiTodayMaxMag: parseFloat(container.querySelector('#detail-kpi-maxmag').value || '0'),
+            kpiTodayMaxDrift: parseFloat(container.querySelector('#detail-kpi-maxdrift').value || '0'),
+            kpi30dAlerts: parseInt(container.querySelector('#detail-kpi-alerts').value || '0', 10)
+          };
+          const res = await fetch(`/api/sites/${encodeURIComponent(site.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) {
+            alert('현장 정보를 저장하는 중 오류가 발생했습니다.');
+            return;
+          }
+          const data = await res.json();
+          const updated = data && data.site ? data.site : null;
+          if (updated) {
+            const idx = sites.findIndex((s) => s.id === updated.id);
+            if (idx !== -1) {
+              sites[idx] = updated;
+            }
+            renderSites();
+            renderSelectedSiteDetail();
+            alert('저장되었습니다.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('서버 오류로 저장에 실패했습니다.');
+        }
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        if (!window.confirm('정말 이 현장을 삭제하시겠습니까?\n연결된 고객 계정의 권한에서도 제거됩니다.')) {
+          return;
+        }
+        try {
+          const res = await fetch(`/api/sites/${encodeURIComponent(site.id)}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) {
+            alert('현장을 삭제하는 중 오류가 발생했습니다.');
+            return;
+          }
+          sites = sites.filter((s) => s.id !== site.id);
+          selectedSiteId = null;
+          renderSites();
+          renderSelectedSiteDetail();
+          alert('삭제되었습니다.');
+        } catch (err) {
+          console.error(err);
+          alert('서버 오류로 삭제에 실패했습니다.');
+        }
+      });
+    }
+  }
+
   function focusOnSite(site) {
     if (!map || typeof site.latitude !== 'number' || typeof site.longitude !== 'number') return;
     map.setView([site.latitude, site.longitude], 15);
+  }
+
+  function renderSelectedSiteDetail() {
+    const container = document.getElementById('selected-site-detail');
+    if (!container) return;
+    const site = sites.find((s) => s.id === selectedSiteId);
+    if (!site) {
+      container.innerHTML = '<p class="help-text">왼쪽 목록에서 현장을 선택하면 상세 정보와 계측값을 수정할 수 있습니다.</p>';
+      return;
+    }
+
+    const fullAddress = [site.address || '', site.detailAddress || ''].filter(Boolean).join(' ').trim();
+    const kpiTodayEvents = typeof site.kpiTodayEvents === 'number' ? site.kpiTodayEvents : 0;
+    const kpiTodayMaxMag = typeof site.kpiTodayMaxMag === 'number' ? site.kpiTodayMaxMag : 0;
+    const kpiTodayMaxDrift = typeof site.kpiTodayMaxDrift === 'number' ? site.kpiTodayMaxDrift : 0;
+    const kpi30dAlerts = typeof site.kpi30dAlerts === 'number' ? site.kpi30dAlerts : 0;
+    const status = site.status || 'SAFE';
+
+    container.innerHTML = `
+      <div class="detail-section">
+        <div class="detail-section-title">기본 정보</div>
+        <div class="form-row">
+          <label>현장명</label>
+          <div class="text-xs text-slate-200">${site.name}</div>
+        </div>
+        <div class="form-row">
+          <label>주소</label>
+          <div class="text-xs text-slate-200">${fullAddress || '-'}</div>
+        </div>
+        <div class="form-row">
+          <label for="detail-detailAddress">상세주소</label>
+          <input type="text" id="detail-detailAddress" value="${site.detailAddress || ''}" placeholder="예: 10층 1001호" />
+        </div>
+        <div class="form-row">
+          <label for="detail-status">상태</label>
+          <select id="detail-status">
+            <option value="SAFE"${status === 'SAFE' ? ' selected' : ''}>안전</option>
+            <option value="CAUTION"${status === 'CAUTION' ? ' selected' : ''}>주의</option>
+            <option value="ALERT"${status === 'ALERT' ? ' selected' : ''}>경고</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">센서 및 건물 정보</div>
+        <div class="form-row">
+          <label for="detail-sensorCount">센서 설치 개수</label>
+          <input type="number" id="detail-sensorCount" value="${typeof site.sensorCount === 'number' ? site.sensorCount : 0}" min="0" />
+        </div>
+        <div class="form-row">
+          <label for="detail-buildingSize">건물 규모</label>
+          <input type="text" id="detail-buildingSize" value="${site.buildingSize || ''}" placeholder="예: 지상 20F, 연면적 12,000㎡" />
+        </div>
+        <div class="form-row">
+          <label for="detail-buildingYear">준공 연도</label>
+          <input type="text" id="detail-buildingYear" value="${site.buildingYear || ''}" placeholder="예: 2005" />
+        </div>
+        <div class="form-row">
+          <label for="detail-notes">비고 (분류용)</label>
+          <textarea id="detail-notes" rows="2" placeholder="예: 병원동, 내진설계 적용, B동만 계측 등">${site.notes || ''}</textarea>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">계측값 (고객 페이지에 표시)</div>
+        <div class="form-row">
+          <label for="detail-kpi-events">오늘 이벤트 수</label>
+          <input type="number" id="detail-kpi-events" min="0" value="${kpiTodayEvents}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-maxmag">오늘 최대 진동 (g)</label>
+          <input type="number" id="detail-kpi-maxmag" step="0.01" min="0" value="${kpiTodayMaxMag}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-maxdrift">오늘 최대 변위 (mm)</label>
+          <input type="number" id="detail-kpi-maxdrift" step="0.01" min="0" value="${kpiTodayMaxDrift}" />
+        </div>
+        <div class="form-row">
+          <label for="detail-kpi-alerts">최근 30일 경고 횟수</label>
+          <input type="number" id="detail-kpi-alerts" min="0" value="${kpi30dAlerts}" />
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <button type="button" id="detail-save" class="btn btn-primary">변경 사항 저장</button>
+        <button type="button" id="detail-delete" class="btn btn-danger" style="margin-left:0.5rem;">현장 삭제</button>
+      </div>
+    `;
+
+    const saveBtn = container.querySelector('#detail-save');
+    const deleteBtn = container.querySelector('#detail-delete');
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        try {
+          const body = {
+            detailAddress: container.querySelector('#detail-detailAddress').value.trim(),
+            status: container.querySelector('#detail-status').value,
+            sensorCount: parseInt(container.querySelector('#detail-sensorCount').value || '0', 10),
+            buildingSize: container.querySelector('#detail-buildingSize').value.trim(),
+            buildingYear: container.querySelector('#detail-buildingYear').value.trim(),
+            notes: container.querySelector('#detail-notes').value.trim(),
+            kpiTodayEvents: parseInt(container.querySelector('#detail-kpi-events').value || '0', 10),
+            kpiTodayMaxMag: parseFloat(container.querySelector('#detail-kpi-maxmag').value || '0'),
+            kpiTodayMaxDrift: parseFloat(container.querySelector('#detail-kpi-maxdrift').value || '0'),
+            kpi30dAlerts: parseInt(container.querySelector('#detail-kpi-alerts').value || '0', 10)
+          };
+          const res = await fetch(`/api/sites/${encodeURIComponent(site.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) {
+            alert('현장 정보를 저장하는 중 오류가 발생했습니다.');
+            return;
+          }
+          const data = await res.json();
+          const updated = data && data.site ? data.site : null;
+          if (updated) {
+            const idx = sites.findIndex((s) => s.id === updated.id);
+            if (idx !== -1) {
+              sites[idx] = updated;
+            }
+            renderSites();
+            renderSelectedSiteDetail();
+            alert('저장되었습니다.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('서버 오류로 저장에 실패했습니다.');
+        }
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        if (!window.confirm('정말 이 현장을 삭제하시겠습니까?\n연결된 고객 계정의 권한에서도 제거됩니다.')) {
+          return;
+        }
+        try {
+          const res = await fetch(`/api/sites/${encodeURIComponent(site.id)}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) {
+            alert('현장을 삭제하는 중 오류가 발생했습니다.');
+            return;
+          }
+          sites = sites.filter((s) => s.id !== site.id);
+          selectedSiteId = null;
+          renderSites();
+          renderSelectedSiteDetail();
+          alert('삭제되었습니다.');
+        } catch (err) {
+          console.error(err);
+          alert('서버 오류로 삭제에 실패했습니다.');
+        }
+      });
+    }
   }
 
   function renderSites() {
@@ -106,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const addrSpan = document.createElement('span');
       addrSpan.className = 'site-item-address';
-      addrSpan.textContent = s.address || '';
+      addrSpan.textContent = [s.address || '', s.detailAddress || ''].filter(Boolean).join(' ');
 
       main.appendChild(nameSpan);
       main.appendChild(addrSpan);
@@ -126,6 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedSiteId = s.id;
         renderSites();
         focusOnSite(s);
+        renderSelectedSiteDetail();
       });
 
       siteListEl.appendChild(item);
@@ -155,6 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 지오코딩 (Nominatim)
   const searchBtn = document.getElementById('search-address');
   const addrInput = document.getElementById('address');
+  const detailAddrInput = document.getElementById('detailAddress');
   const latInput = document.getElementById('latitude');
   const lngInput = document.getElementById('longitude');
   const geocodeResults = document.getElementById('geocode-results');
@@ -216,6 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const body = {
         name: document.getElementById('name').value.trim(),
         address: addrInput.value.trim(),
+        detailAddress: detailAddrInput ? detailAddrInput.value.trim() : '',
         latitude: latInput.value ? parseFloat(latInput.value) : null,
         longitude: lngInput.value ? parseFloat(lngInput.value) : null,
         sensorCount: parseInt(document.getElementById('sensorCount').value || '0', 10),

@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sites.forEach((s) => {
         if (typeof s.latitude === 'number' && typeof s.longitude === 'number') {
           const marker = L.marker([s.latitude, s.longitude]).addTo(map);
-          marker.bindPopup(`<strong>${s.name}</strong><br>${s.address || ''}`);
+          marker.bindPopup(`<strong>${s.name}</strong><br>${[[s.address || '', s.detailAddress || ''].filter(Boolean).join(' '), s.detailAddress || ''].filter(Boolean).join(' ')}`);
           bounds.push([s.latitude, s.longitude]);
         }
       });
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="site-item">
                 <div class="site-item-main">
                   <span class="site-item-name">${s.name}</span>
-                  <span class="site-item-address">${s.address || ''}</span>
+                  <span class="site-item-address">${[[s.address || '', s.detailAddress || ''].filter(Boolean).join(' '), s.detailAddress || ''].filter(Boolean).join(' ')}</span>
                 </div>
                 <span class="${badgeClass}">${status}</span>
               </div>
