@@ -182,4 +182,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadSites();
   loadUsers();
+  // 고객에게 현장 할당 저장
+updateSitesBtn.addEventListener("click", async () => {
+  const uid = selectedUserId;
+  const selected = Array.from(userSitesSelect.selectedOptions).map(o => o.value);
+
+  const res = await fetch(`/api/users/${uid}/sites`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ siteIds: selected })
+  });
+
+  const json = await res.json();
+  if (json.ok) {
+    alert("현장이 성공적으로 할당되었습니다!");
+    loadUsers();
+  } else {
+    alert(json.message);
+  }
+});
+
 });
