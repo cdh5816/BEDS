@@ -2,7 +2,6 @@
      This codebase is owned by the user (AIRX) for the Building Earthquake Detection System project.
 -->
 
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -12,6 +11,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
   <header class="app-header">
     <div>
@@ -28,32 +28,109 @@
   </header>
 
   <main class="layout">
-    <section class="panel panel-form">
-      <h2>새 고객 계정 생성</h2>
+    <!-- LEFT: 유저 목록 + 생성 -->
+    <section class="panel panel-sites">
+      <div class="panel-header">
+        <div>
+          <h2>고객 목록</h2>
+          <div id="users-summary" class="site-summary"></div>
+        </div>
+        <div class="filters" style="gap:.5rem">
+          <input id="user-search" type="text" placeholder="ID 검색 (예: abc)" />
+          <select id="user-filter">
+            <option value="ALL">전체</option>
+            <option value="HAS_SITES">현장 할당됨</option>
+            <option value="NO_SITES">현장 없음</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="user-list" class="user-list"></div>
+
+      <div class="beds-divider"></div>
+
+      <h2 class="mt-1">새 고객 계정 생성</h2>
       <form id="user-form">
         <div class="form-row">
-          <label for="user-username">고객 ID</label>
+          <label for="user-username">고객 ID<span class="required">*</span></label>
           <input id="user-username" type="text" placeholder="고객 로그인 ID" />
         </div>
         <div class="form-row">
-          <label for="user-password">초기 비밀번호</label>
+          <label for="user-password">초기 비밀번호<span class="required">*</span></label>
           <input id="user-password" type="password" placeholder="임시 비밀번호" />
         </div>
+
         <div class="form-row">
-          <label for="user-sites">접근 가능한 현장</label>
-          <select id="user-sites" multiple></select>
+          <label class="text-slate-200">초기 현장 할당(선택)</label>
+          <div class="text-[11px] text-slate-400 mb-2">
+            계정 생성 후에도 오른쪽 패널에서 언제든지 변경/저장할 수 있습니다.
+          </div>
+          <select id="user-sites-create" multiple></select>
           <p class="help-text">Ctrl/Command 키로 여러 개 선택할 수 있습니다.</p>
         </div>
+
         <button type="submit" class="btn btn-primary">고객 계정 생성</button>
         <p id="user-form-message" class="form-message"></p>
       </form>
     </section>
 
-    <section class="panel panel-sites">
-      <div class="panel-header">
-        <h2>등록된 고객 계정</h2>
+    <!-- RIGHT: 선택 고객 상세 + 현장 매핑 -->
+    <section class="panel panel-form" style="max-width: 520px;">
+      <div class="panel-header" style="align-items:flex-start">
+        <div>
+          <h2>권한(현장) 매핑</h2>
+          <p class="help-text" style="margin:0">
+            왼쪽에서 고객을 선택하면 현장 권한을 체크로 할당할 수 있습니다.
+          </p>
+        </div>
+        <div class="text-right">
+          <div id="selected-user-badge" class="beds-pill">선택: 없음</div>
+        </div>
       </div>
-      <div id="user-list" class="user-list"></div>
+
+      <div id="detail-empty" class="text-xs text-slate-400">
+        고객을 선택해 주세요.
+      </div>
+
+      <div id="detail-panel" class="hidden">
+        <div class="beds-kpi-grid">
+          <div class="beds-kpi">
+            <div class="kpi-label">할당 현장</div>
+            <div id="kpi-sites" class="kpi-value">0</div>
+          </div>
+          <div class="beds-kpi">
+            <div class="kpi-label">진행중(참고)</div>
+            <div id="kpi-inprogress" class="kpi-value">0</div>
+            <div class="kpi-sub">constructionStatus 기준</div>
+          </div>
+          <div class="beds-kpi">
+            <div class="kpi-label">경고(ALERT)</div>
+            <div id="kpi-alert" class="kpi-value">0</div>
+            <div class="kpi-sub">status 기준</div>
+          </div>
+        </div>
+
+        <div class="beds-divider"></div>
+
+        <div class="form-row">
+          <label class="text-slate-200">현장 검색</label>
+          <input id="site-search" type="text" placeholder="현장명/주소 검색" />
+        </div>
+
+        <div class="beds-row">
+          <button type="button" id="btn-select-all" class="btn btn-secondary btn-xs">전체 선택</button>
+          <button type="button" id="btn-clear-all" class="btn btn-secondary btn-xs">전체 해제</button>
+        </div>
+
+        <div id="site-checklist" class="beds-checklist"></div>
+
+        <div class="beds-row beds-row-right">
+          <button type="button" id="btn-delete-user" class="btn btn-secondary btn-xs">계정 삭제</button>
+          <button type="button" id="btn-save-sites" class="btn btn-primary" disabled>변경사항 저장</button>
+        </div>
+
+        <p id="save-message" class="form-message"></p>
+      </div>
     </section>
   </main>
 
