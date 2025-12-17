@@ -12,15 +12,34 @@ function getCurrentUser() {
 }
 
 function setCurrentUser(user) {
-  if (!user) {
-    localStorage.removeItem('bedsUser');
-  } else {
-    localStorage.setItem('bedsUser', JSON.stringify(user));
-  }
+  if (!user) localStorage.removeItem('bedsUser');
+  else localStorage.setItem('bedsUser', JSON.stringify(user));
 }
 
 function fmtCoord(n) {
-  return Number(n).toFixed(6);
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '-';
+  return v.toFixed(6);
+}
+
+// /api/sites 응답이 {sites:[...]} 또는 [...] 둘 다 받기
+function normalizeSitesResponse(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.sites)) return data.sites;
+  return [];
+}
+
+function statusLabel(status) {
+  if (status === 'SAFE') return '안전';
+  if (status === 'CAUTION') return '위험';
+  if (status === 'ALERT') return '경고';
+  return status || 'SAFE';
+}
+function statusBadgeClass(status) {
+  if (status === 'ALERT') return 'badge badge-alert';
+  if (status === 'CAUTION') return 'badge badge-caution';
+  return 'badge badge-safe';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -54,9 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dashboardBtn.classList.remove('hidden');
       dashboardBtn.textContent = user.role === 'ADMIN' ? '관리자 콘솔' : '모니터링';
     }
-    if (logoutBtn) {
-      logoutBtn.classList.remove('hidden');
-    }
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
   }
 
   updateHeaderForUser();
@@ -66,24 +83,18 @@ document.addEventListener('DOMContentLoaded', () => {
     dashboardBtn.addEventListener('click', () => {
       const user = getCurrentUser();
       if (!user) return;
-      if (user.role === 'ADMIN') {
-        window.location.href = 'admin.html';
-      } else {
-        window.location.href = 'client.html';
-      }
+      window.location.href = user.role === 'ADMIN' ? 'admin.html' : 'client.html';
     });
   }
 
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       setCurrentUser(null);
-      // ✅ 혹시 로그인 패널 열림 상태로 꼬이는 것 방지
       document.body.classList.remove('login-open');
       window.location.href = 'index.html';
     });
   }
 
-  // 로그인 토글 버튼: open/close + body.login-open 동기화
   if (loginToggle && loginPanel) {
     loginToggle.addEventListener('click', () => {
       loginPanel.classList.toggle('open');
@@ -91,18 +102,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 패널 바깥 클릭하면 닫기(모바일에서 특히 유용)
+  // 패널 바깥 클릭 -> 닫기
   document.addEventListener('click', (e) => {
     if (!loginPanel || !loginToggle) return;
     const t = e.target;
     const clickedInsidePanel = loginPanel.contains(t);
     const clickedToggle = loginToggle.contains(t);
-    if (!clickedInsidePanel && !clickedToggle) {
-      closeLoginPanel();
-    }
+    if (!clickedInsidePanel && !clickedToggle) closeLoginPanel();
   });
 
-  // ESC로 닫기(PC)
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeLoginPanel();
   });
@@ -146,14 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
           siteIds: data.siteIds || []
         });
 
-        // ✅ 로그인 성공 시 패널 닫기 + 지도 터치 차단 해제
         closeLoginPanel();
-
-        if (data.role === 'ADMIN') {
-          window.location.href = 'admin.html';
-        } else {
-          window.location.href = 'client.html';
-        }
+        window.location.href = data.role === 'ADMIN' ? 'admin.html' : 'client.html';
       } catch (err) {
         console.error(err);
         if (loginError) loginError.textContent = '서버와 통신 중 오류가 발생했습니다.';
@@ -181,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pickCoordsEl = document.getElementById('pick-coords');
   const pickAddressEl = document.getElementById('pick-address');
   const pickCopyBtn = document.getElementById('pick-copy');
+  const pickClearBtn = document.getElementById('pick-clear');
 
   let pickedLat = null;
   let pickedLon = null;
@@ -193,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function reverseGeocode(lat, lon) {
-    // 서버에 /api/reverse 가 있으면 가장 안정적(키 노출/차단 리스크 최소화)
+    // 서버에 /api/reverse 가 있으면 가장 안정적
     try {
       const r = await fetch(`/api/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
       if (!r.ok) return null;
@@ -210,13 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
     pickedAddress = null;
 
     updatePickUI(lat, lon, '주소 조회 중...');
-
     const addr = await reverseGeocode(lat, lon);
     pickedAddress = addr || null;
     updatePickUI(lat, lon, pickedAddress || '(주소를 찾지 못했습니다)');
   }
 
-  // 복사 버튼
   if (pickCopyBtn) {
     pickCopyBtn.addEventListener('click', async () => {
       if (pickedLat == null || pickedLon == null) {
@@ -235,11 +236,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 클릭/드래그 마커
   let pickMarker = null;
 
+  if (pickClearBtn) {
+    pickClearBtn.addEventListener('click', () => {
+      if (pickMarker) {
+        map.removeLayer(pickMarker);
+        pickMarker = null;
+      }
+      pickedLat = pickedLon = null;
+      pickedAddress = null;
+      updatePickUI(null, null, null);
+    });
+  }
+
   map.on('click', async (e) => {
-    // ✅ 로그인 패널이 열린 상태면, 지도가 클릭 먹지 않도록 (CSS로 차단되지만 이중 안전)
+    // 로그인 패널 열린 상태면 지도 클릭 무시
     if (document.body.classList.contains('login-open')) return;
 
     const lat = e.latlng.lat;
@@ -258,68 +270,203 @@ document.addEventListener('DOMContentLoaded', () => {
     await setPicked(lat, lon);
   });
 
-  // 초기 UI
   updatePickUI(null, null, null);
 
   // =========================
-  // Load sites and markers
+  // Site modal (if exists)
   // =========================
+  const modalEl = document.getElementById('site-modal');
+  const modalBackdrop = document.getElementById('site-modal-backdrop');
+  const modalClose = document.getElementById('site-modal-close');
+
+  const modalTitle = document.getElementById('site-modal-title');
+  const modalAddress = document.getElementById('site-modal-address');
+  const modalStatus = document.getElementById('site-modal-status');
+  const modalSensors = document.getElementById('site-modal-sensors');
+  const modalSize = document.getElementById('site-modal-size');
+  const modalYear = document.getElementById('site-modal-year');
+  const modalCoords = document.getElementById('site-modal-coords');
+  const modalNotes = document.getElementById('site-modal-notes');
+
+  const modalPan = document.getElementById('site-modal-pan');
+  const modalCopy = document.getElementById('site-modal-copy');
+
+  let modalSite = null;
+
+  function openModal(site) {
+    if (!modalEl) return;
+    modalSite = site || null;
+
+    if (modalTitle) modalTitle.textContent = site?.name || '-';
+    if (modalAddress) modalAddress.textContent = site?.address || '-';
+    if (modalStatus) modalStatus.textContent = `${statusLabel(site?.status)} (${site?.status || 'SAFE'})`;
+    if (modalSensors) modalSensors.textContent = `${site?.sensorCount ?? 0}개`;
+    if (modalSize) modalSize.textContent = site?.buildingSize || '-';
+    if (modalYear) modalYear.textContent = site?.buildingYear || '-';
+
+    const lat = site?.latitude;
+    const lon = site?.longitude;
+    if (modalCoords) modalCoords.textContent = (Number.isFinite(lat) && Number.isFinite(lon)) ? `${fmtCoord(lat)}, ${fmtCoord(lon)}` : '-';
+    if (modalNotes) modalNotes.textContent = site?.notes ? `메모: ${site.notes}` : '메모: -';
+
+    modalEl.classList.remove('hidden');
+    modalEl.classList.add('flex');
+    // 모달 뜨면 지도 터치 방지(모바일)
+    document.body.classList.add('login-open');
+  }
+
+  function closeModal() {
+    if (!modalEl) return;
+    modalEl.classList.add('hidden');
+    modalEl.classList.remove('flex');
+    modalSite = null;
+    // 모달 닫으면 지도 터치 복구(로그인 패널 상태와 별개)
+    document.body.classList.remove('login-open');
+  }
+
+  if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  if (modalPan) {
+    modalPan.addEventListener('click', () => {
+      if (!modalSite) return;
+      const lat = modalSite.latitude;
+      const lon = modalSite.longitude;
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      map.setView([lat, lon], 16, { animate: true });
+    });
+  }
+
+  if (modalCopy) {
+    modalCopy.addEventListener('click', async () => {
+      if (!modalSite) return;
+      const lat = modalSite.latitude;
+      const lon = modalSite.longitude;
+
+      const coordText = (Number.isFinite(lat) && Number.isFinite(lon)) ? `${fmtCoord(lat)}, ${fmtCoord(lon)}` : '-';
+      const text = `${modalSite.name || ''}\n${modalSite.address || ''}\n${coordText}`;
+
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('복사 완료!');
+      } catch (e) {
+        prompt('아래 내용을 복사하세요:', text);
+      }
+    });
+  }
+
+  // =========================
+  // Load sites and markers + clickable list
+  // =========================
+  const siteMarkers = new Map(); // id -> marker
+  let sitesCache = [];
+
+  function renderLandingSiteList(sites) {
+    if (!siteListEl) return;
+
+    if (!sites || sites.length === 0) {
+      siteListEl.innerHTML = '<p>등록된 현장이 없습니다. 관리자 페이지에서 현장을 등록해 주세요.</p>';
+      return;
+    }
+
+    siteListEl.innerHTML = sites.map((s) => {
+      const status = s.status || 'SAFE';
+      const badgeClass = statusBadgeClass(status);
+      const safeName = String(s.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeAddr = String(s.address || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      return `
+        <button type="button"
+                class="site-item w-full text-left"
+                data-site-id="${s.id}">
+          <div class="site-item-main">
+            <span class="site-item-name">${safeName}</span>
+            <span class="site-item-address">${safeAddr}</span>
+          </div>
+          <span class="${badgeClass}">${status}</span>
+        </button>
+      `;
+    }).join('');
+
+    // 클릭 이벤트(위임)
+    siteListEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-site-id]');
+      if (!btn) return;
+
+      const id = btn.getAttribute('data-site-id');
+      const site = sitesCache.find((x) => String(x.id) === String(id));
+      if (!site) return;
+
+      const lat = site.latitude;
+      const lon = site.longitude;
+
+      // 지도 이동 + 마커 팝업
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        map.setView([lat, lon], 16, { animate: true });
+
+        const mk = siteMarkers.get(site.id);
+        if (mk) mk.openPopup();
+      }
+
+      // 상세 모달이 있으면 열기
+      if (document.getElementById('site-modal')) {
+        openModal(site);
+      }
+    }, { once: true }); // 중복 등록 방지
+  }
+
+  function upsertMarkers(sites) {
+    const bounds = [];
+
+    sites.forEach((s) => {
+      const lat = s.latitude;
+      const lon = s.longitude;
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+      const popupHtml = `<strong>${s.name || ''}</strong><br>${s.address || ''}`;
+      let mk = siteMarkers.get(s.id);
+
+      if (!mk) {
+        mk = L.marker([lat, lon]).addTo(map);
+        mk.bindPopup(popupHtml);
+        siteMarkers.set(s.id, mk);
+      } else {
+        mk.setLatLng([lat, lon]);
+        mk.setPopupContent(popupHtml);
+      }
+
+      bounds.push([lat, lon]);
+    });
+
+    if (bounds.length) {
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+  }
+
+  function updateSampleCard(first) {
+    if (!first) return;
+    const titleEl = document.getElementById('sample-title');
+    const addrEl = document.getElementById('sample-address');
+    if (titleEl) titleEl.textContent = first.name || '-';
+    if (addrEl) addrEl.textContent = first.address || '-';
+  }
+
   fetch('/api/sites')
     .then((res) => res.json())
     .then((data) => {
-      const sites = data && Array.isArray(data.sites) ? data.sites : [];
-      if (!sites.length) {
-        if (siteListEl) {
-          siteListEl.innerHTML = '<p>등록된 현장이 없습니다. 관리자 페이지에서 현장을 등록해 주세요.</p>';
-        }
-        return;
-      }
+      const sites = normalizeSitesResponse(data);
+      sitesCache = sites;
 
-      const bounds = [];
-      sites.forEach((s) => {
-        if (typeof s.latitude === 'number' && typeof s.longitude === 'number') {
-          const marker = L.marker([s.latitude, s.longitude]).addTo(map);
-          marker.bindPopup(`<strong>${s.name}</strong><br>${s.address || ''}`);
-          bounds.push([s.latitude, s.longitude]);
-        }
-      });
-
-      if (bounds.length) {
-        map.fitBounds(bounds, { padding: [20, 20] });
-      }
-
-      if (siteListEl) {
-        siteListEl.innerHTML = sites
-          .map((s) => {
-            const status = s.status || 'SAFE';
-            let badgeClass = 'badge badge-safe';
-            if (status === 'ALERT') badgeClass = 'badge badge-alert';
-            else if (status === 'CAUTION') badgeClass = 'badge badge-caution';
-            return `
-              <div class="site-item">
-                <div class="site-item-main">
-                  <span class="site-item-name">${s.name}</span>
-                  <span class="site-item-address">${s.address || ''}</span>
-                </div>
-                <span class="${badgeClass}">${status}</span>
-              </div>
-            `;
-          })
-          .join('');
-      }
-
-      const first = sites[0];
-      if (first) {
-        const titleEl = document.getElementById('sample-title');
-        const addrEl = document.getElementById('sample-address');
-        if (titleEl) titleEl.textContent = first.name;
-        if (addrEl) addrEl.textContent = first.address || '';
-      }
+      renderLandingSiteList(sites);
+      upsertMarkers(sites);
+      updateSampleCard(sites[0]);
     })
     .catch((err) => {
       console.error(err);
-      if (siteListEl) {
-        siteListEl.innerHTML = '<p>현장 정보를 불러오는 중 오류가 발생했습니다.</p>';
-      }
+      if (siteListEl) siteListEl.innerHTML = '<p>현장 정보를 불러오는 중 오류가 발생했습니다.</p>';
     });
 });
