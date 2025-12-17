@@ -45,8 +45,13 @@ function statusBadgeClass(status) {
 function constructionLabel(v) {
   if (v === 'IN_PROGRESS') return '공사 진행 중';
   if (v === 'DONE') return '공사 완료';
-  // 기존 데이터 호환 (없거나 다른 값이면 기본)
+  // 기존 데이터 호환
   return v ? String(v) : '공사 진행 중';
+}
+
+// ✅ 공사상태 필드 통일: 새 필드 constructionState 우선
+function getConstructionState(site) {
+  return site?.constructionState ?? site?.constructionStatus ?? site?.construction_state ?? null;
 }
 
 function escapeHtml(s) {
@@ -64,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const dashboardBtn = document.getElementById('landing-dashboard');
   const logoutBtn = document.getElementById('landing-logout');
 
-  // ===== helper: body class toggle (mobile touch fix) =====
   function syncLoginOpenClass() {
     const isOpen = !!(loginPanel && loginPanel.classList.contains('open'));
     document.body.classList.toggle('login-open', isOpen);
@@ -116,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 패널 바깥 클릭 -> 닫기
   document.addEventListener('click', (e) => {
     if (!loginPanel || !loginToggle) return;
     const t = e.target;
@@ -199,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalTitle = document.getElementById('site-modal-title');
   const modalAddress = document.getElementById('site-modal-address');
   const modalStatus = document.getElementById('site-modal-status');
-  const modalConstruction = document.getElementById('site-modal-construction'); // ✅ index.html에 추가한 항목
+  const modalConstruction = document.getElementById('site-modal-construction');
   const modalSensors = document.getElementById('site-modal-sensors');
   const modalSize = document.getElementById('site-modal-size');
   const modalYear = document.getElementById('site-modal-year');
@@ -217,7 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalTitle) modalTitle.textContent = site?.name || '-';
     if (modalAddress) modalAddress.textContent = site?.address || '-';
     if (modalStatus) modalStatus.textContent = `${statusLabel(site?.status)} (${site?.status || 'SAFE'})`;
-    if (modalConstruction) modalConstruction.textContent = constructionLabel(site?.constructionStatus || site?.construction_state);
+
+    const c = getConstructionState(site);
+    if (modalConstruction) modalConstruction.textContent = constructionLabel(c);
 
     if (modalSensors) modalSensors.textContent = `${site?.sensorCount ?? 0}개`;
     if (modalSize) modalSize.textContent = site?.buildingSize || '-';
@@ -226,8 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     modalEl.classList.remove('hidden');
     modalEl.classList.add('flex');
-
-    // ✅ 모달은 login-open이 아니라 modal-open으로 분리
     document.body.classList.add('modal-open');
   }
 
@@ -277,17 +280,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // Sites + markers
   // =========================
-  const siteListEl = document.getElementById('landing-site-list');       // 왼쪽: 진행중 요약
+  const siteListEl = document.getElementById('landing-site-list');          // 왼쪽: 진행중 요약
   const inprogressListEl = document.getElementById('inprogress-site-list'); // 오른쪽: 진행중 카드
   const inprogressEmptyEl = document.getElementById('inprogress-empty');
 
   const siteMarkers = new Map(); // id -> marker
   let sitesCache = [];
 
-  function upsertMarkers(sites) {
+  function upsertMarkers(allSites) {
     const bounds = [];
 
-    sites.forEach((s) => {
+    allSites.forEach((s) => {
       const lat = s.latitude;
       const lon = s.longitude;
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
@@ -317,13 +320,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goSite(site) {
     if (!site) return;
-
     const lat = site.latitude;
     const lon = site.longitude;
 
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
       map.setView([lat, lon], 16, { animate: true });
-
       const mk = siteMarkers.get(site.id);
       if (mk) mk.openPopup();
     }
@@ -356,7 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
 
-    // 이벤트 위임(한 번만 바인딩)
     if (!siteListEl.__boundClick) {
       siteListEl.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-site-id]');
@@ -383,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inprogressListEl.innerHTML = inProgress.map((s) => {
       const status = s.status || 'SAFE';
       const badgeClass = statusBadgeClass(status);
+      const c = getConstructionState(s);
 
       return `
         <button type="button"
@@ -394,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="mt-1 text-xs text-slate-400">${escapeHtml(s.address || '')}</div>
           <div class="mt-2 text-[11px] text-slate-400">
-            <span class="mr-2">공사: ${escapeHtml(constructionLabel(s.constructionStatus || s.construction_state))}</span>
+            <span class="mr-2">공사: ${escapeHtml(constructionLabel(c))}</span>
             <span class="mr-2">센서: ${escapeHtml(String(s.sensorCount ?? 0))}개</span>
           </div>
         </button>
@@ -414,10 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 진행중 판정: 새 필드 constructionStatus === 'IN_PROGRESS'가 생기면 그걸 우선 사용
   function isInProgress(site) {
-    const v = site?.constructionStatus ?? site?.construction_state;
-    if (!v) return true; // 기존 데이터 호환: 필드 없으면 일단 진행중으로 간주
+    const v = getConstructionState(site);
+    if (!v) return true; // 호환: 없으면 진행중으로 간주
     return String(v) === 'IN_PROGRESS';
   }
 
@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const sites = normalizeSitesResponse(data);
       sitesCache = sites;
 
-      // 지도에는 전체 마커
+      // 지도에는 전체 표시(마커 클릭 시 모달)
       upsertMarkers(sites);
 
       // 메인(좌/우)은 진행중만
