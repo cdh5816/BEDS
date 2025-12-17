@@ -1,0 +1,69 @@
+<!-- © AIRX (individual business). All rights reserved.
+     This codebase is owned by the user (AIRX) for the Building Earthquake Detection System project.
+-->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Deb's · 전체 현장 목록</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div class="max-w-6xl mx-auto flex flex-col min-h-screen px-6">
+
+    <header class="app-header flex items-center justify-between pt-4 pb-3 border-b border-slate-800">
+      <div>
+        <div class="text-xl tracking-[0.25em] uppercase text-slate-50 font-semibold">BEDS</div>
+        <div class="text-[11px] tracking-[0.25em] text-slate-400 mt-1">전체 현장 목록</div>
+      </div>
+      <div class="flex gap-2">
+        <a href="index.html" class="btn btn-secondary text-xs">메인으로</a>
+        <a href="admin.html" class="btn btn-secondary text-xs">관리자</a>
+      </div>
+    </header>
+
+    <main class="py-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-4 flex-1">
+      <!-- List -->
+      <section class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+        <div class="flex items-center justify-between gap-3">
+          <h1 class="text-base font-semibold text-slate-100">전체 현장</h1>
+          <div class="flex items-center gap-2">
+            <select id="filter-construction" class="text-xs bg-slate-950 border border-slate-800 rounded-xl px-2 py-2">
+              <option value="ALL">공사상태 전체</option>
+              <option value="IN_PROGRESS">공사 진행 중</option>
+              <option value="DONE">공사 완료</option>
+            </select>
+            <select id="filter-status" class="text-xs bg-slate-950 border border-slate-800 rounded-xl px-2 py-2">
+              <option value="ALL">위험상태 전체</option>
+              <option value="SAFE">SAFE</option>
+              <option value="CAUTION">CAUTION</option>
+              <option value="ALERT">ALERT</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="sites-summary" class="mt-2 text-xs text-slate-400"></div>
+        <div id="sites-list" class="mt-3 space-y-2"></div>
+      </section>
+
+      <!-- Detail -->
+      <section class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+        <h2 class="text-base font-semibold text-slate-100">현장 상세</h2>
+        <div id="site-detail" class="mt-3 text-sm text-slate-300">
+          왼쪽 목록에서 현장을 선택하세요.
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer pb-6">
+      <span class="text-[11px] text-slate-500">Deb's · © AIRX (individual business)</span>
+    </footer>
+  </div>
+
+  <script src="sites.js"></script>
+</body>
+</html>
