@@ -9,16 +9,16 @@
   <title>Deb's · 관리자 콘솔</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
   <header class="app-header">
     <div>
       <h1 class="app-title">Deb's 관리자</h1>
-      <p class="subtitle">현장 등록, 상태 관리, 계측 데이터 관리</p>
+      <p class="subtitle">현장 등록, 수정, 상태 관리</p>
     </div>
+
     <nav class="app-nav">
       <a href="index.html" class="nav-link">메인</a>
       <a href="client.html" class="nav-link" id="nav-monitor">모니터링</a>
@@ -29,83 +29,91 @@
   </header>
 
   <main class="layout">
+    <!-- LEFT: sites -->
     <section class="panel panel-sites">
       <div class="panel-header">
         <h2>등록된 현장</h2>
         <div class="filters">
           <label>
-            상태:
+            공사상태:
+            <select id="construction-filter">
+              <option value="ALL">전체</option>
+              <option value="IN_PROGRESS">공사 진행 중</option>
+              <option value="DONE">공사 완료</option>
+            </select>
+          </label>
+          <label>
+            위험상태:
             <select id="status-filter">
               <option value="ALL">전체</option>
               <option value="SAFE">안전</option>
-              <option value="CAUTION">주의</option>
+              <option value="CAUTION">위험</option>
               <option value="ALERT">경고</option>
             </select>
           </label>
           <label>
-            규모:
-            <input type="text" id="size-filter" placeholder="예: 대형, 10,000㎡, 20F" />
+            검색:
+            <input type="text" id="q-filter" placeholder="현장명/주소/메모" />
           </label>
         </div>
       </div>
 
       <div id="site-summary" class="site-summary"></div>
 
-      <!-- ✅ 등록/보정 안내 -->
-      <div class="text-[11px] text-slate-400 mb-2">
-        주소 검색 결과가 동까지만 나오면, <strong class="text-slate-200">아래 지도에서 핀을 찍어 좌표를 보정</strong>하세요.
-        (핀은 드래그로 미세 조정 가능)
-      </div>
+      <!-- 리스트 -->
+      <div id="site-list" class="site-list"></div>
 
-      <div id="admin-map" class="site-map rounded-2xl overflow-hidden border border-slate-800"></div>
-
-      <!-- ✅ 클릭한 현장 상세 패널 (없던 반응 해결용) -->
+      <!-- 상세 패널 -->
       <div id="site-detail" class="mt-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-200">
         <div class="font-semibold text-slate-100">현장 상세</div>
-        <div id="site-detail-body" class="mt-2 text-slate-300">현장을 선택하면 여기서 상세 정보가 표시됩니다.</div>
+        <div id="site-detail-body" class="mt-2 text-slate-300">
+          현장을 선택하면 여기서 상세 정보가 표시됩니다.
+        </div>
       </div>
-
-      <div id="site-list" class="site-list"></div>
     </section>
 
+    <!-- RIGHT: form -->
     <section class="panel panel-form">
-      <h2>새 현장 등록</h2>
+      <div class="flex items-center justify-between">
+        <h2 id="form-title">새 현장 등록</h2>
+        <div class="flex gap-2">
+          <button type="button" id="form-reset" class="btn btn-secondary btn-nav text-xs">새로 등록</button>
+        </div>
+      </div>
+
       <form id="site-form">
+        <!-- 수정 모드에서 사용 -->
+        <input type="hidden" id="siteId" />
+
         <div class="form-row">
           <label for="name">현장명<span class="required">*</span></label>
           <input type="text" id="name" required placeholder="예: 서울역 타워 A동" />
         </div>
 
-        <div class="form-row form-row-inline">
-          <div class="form-col">
-            <label for="address">주소<span class="required">*</span></label>
-            <input type="text" id="address" required placeholder="주소 입력 후 검색 버튼 클릭" />
-          </div>
-          <button type="button" id="search-address" class="btn btn-secondary">주소 검색</button>
+        <div class="form-row">
+          <label for="address">주소<span class="required">*</span></label>
+          <input type="text" id="address" required placeholder="예: 서울특별시 중구 세종대로 110" />
+          <div class="help-text">※ 좌표/핀 기능은 제거되었습니다. 주소는 텍스트로 관리합니다.</div>
         </div>
 
-        <div id="geocode-results" class="geocode-results"></div>
-
-        <input type="hidden" id="latitude" />
-        <input type="hidden" id="longitude" />
-
-        <!-- ✅ 좌표 보정 UI -->
-        <div class="mt-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-200">
-          <div class="font-semibold text-slate-100">좌표 보정(필수 권장)</div>
-          <div class="mt-1 text-slate-400">
-            지도에서 위치를 클릭하면 핀이 찍히고 위도/경도가 자동 저장됩니다.
-          </div>
-          <div class="mt-2 grid gap-1">
-            <div><span class="text-slate-400">선택 좌표:</span> <span id="pick-coords">-</span></div>
-            <div><span class="text-slate-400">좌표 기반 주소(가능하면 자동 보정):</span> <span id="pick-address">-</span></div>
-          </div>
-          <div class="mt-2 flex gap-2">
-            <button type="button" id="pick-use" class="btn btn-secondary text-xs">이 좌표를 등록에 반영</button>
-            <button type="button" id="pick-clear" class="btn btn-secondary text-xs">핀 지우기</button>
-          </div>
+        <div class="form-row">
+          <label for="constructionStatus">공사 상태<span class="required">*</span></label>
+          <select id="constructionStatus" required>
+            <option value="IN_PROGRESS">공사 진행 중</option>
+            <option value="DONE">공사 완료</option>
+          </select>
         </div>
 
-        <div class="form-row mt-3">
+        <div class="form-row">
+          <label for="status">위험 상태</label>
+          <select id="status">
+            <option value="SAFE">안전</option>
+            <option value="CAUTION">위험</option>
+            <option value="ALERT">경고</option>
+          </select>
+        </div>
+
+        <div class="form-row">
           <label for="sensorCount">센서 설치 개수</label>
           <input type="number" id="sensorCount" min="0" placeholder="예: 3" />
         </div>
@@ -125,9 +133,16 @@
           <textarea id="notes" rows="3" placeholder="예: 병원동, 내진설계 적용, B동만 계측 등"></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary">현장 생성</button>
+        <div class="mt-3 flex gap-2">
+          <button type="submit" id="submit-btn" class="btn btn-primary">현장 생성</button>
+          <button type="button" id="delete-btn" class="btn btn-secondary hidden">삭제</button>
+        </div>
+
+        <p id="form-message" class="form-message text-slate-400"></p>
+
         <p class="help-text">
-          주소 검색은 오픈스트리트맵 기반 무료 지오코더를 사용합니다. 정확한 위치는 지도 핀으로 보정하세요.
+          운영 흐름: 현장 선택 → 우측에서 수정 → 저장(수정).<br />
+          공사 완료 현장은 메인 화면에서 기본적으로 숨기고, “전체 현장 목록”에서 확인합니다.
         </p>
       </form>
     </section>
@@ -137,8 +152,6 @@
     <span>Deb's · © AIRX (individual business)</span>
   </footer>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="admin.js"></script>
 </body>
 </html>
