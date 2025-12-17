@@ -680,3 +680,55 @@ body {
   }
 }
 
+/* ======================================================
+   PATCH: Mobile login panel must stay above Leaflet map
+   © AIRX (individual business). All rights reserved.
+   - :has() 미사용 (모바일/웹뷰 호환)
+   - landing.js에서 body에 .login-open을 붙여야 "지도 터치 차단"이 동작함
+   ====================================================== */
+@media (max-width: 768px) {
+
+  /* 헤더는 항상 최상단 */
+  .app-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20000 !important;
+  }
+
+  /* 로그인 패널은 지도 DOM과 분리해서 강제로 위에 띄움 */
+  .login-panel {
+    position: fixed !important;
+    top: 4.5rem !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    width: auto !important;
+    z-index: 30000 !important;
+  }
+
+  /* Leaflet 지도/컨트롤 레이어는 아래로 */
+  #landing-map,
+  .leaflet-container,
+  .leaflet-pane,
+  .leaflet-map-pane,
+  .leaflet-control-container,
+  .leaflet-top,
+  .leaflet-bottom {
+    z-index: 1 !important;
+  }
+
+  /* ✅ 핵심: 로그인 패널이 열렸을 때만 지도 터치 차단 (100% 호환) */
+  body.login-open #landing-map,
+  body.login-open .leaflet-container,
+  body.login-open .leaflet-pane,
+  body.login-open .leaflet-map-pane,
+  body.login-open .leaflet-control-container {
+    pointer-events: none !important;
+  }
+
+  body.login-open .login-panel,
+  body.login-open .login-panel *,
+  body.login-open .app-header,
+  body.login-open .app-header * {
+    pointer-events: auto !important;
+  }
+}
