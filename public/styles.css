@@ -147,3 +147,98 @@ body.modal-open {
     grid-column: 1 / -1;
   }
 }
+/* ===== Accounts UX polish (© AIRX) ===== */
+.beds-divider{
+  margin: .9rem 0;
+  height: 1px;
+  background: rgba(31,41,55,.9);
+}
+
+.beds-pill{
+  font-size: 11px;
+  color: #a7f3d0;
+  border: 1px solid rgba(34,197,94,.35);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(2,6,23,.6);
+}
+
+.beds-user-card{
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .12s ease, border-color .12s ease, background-color .12s ease;
+}
+.beds-user-card:hover{
+  transform: translateY(-1px);
+  border-color: rgba(71,85,105,.9);
+  background: rgba(15,23,42,.75);
+}
+.beds-user-card-active{
+  border-color: rgba(34,197,94,.65) !important;
+  background: rgba(22,101,52,.16) !important;
+}
+
+.beds-kpi-grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: .6rem;
+}
+.beds-kpi{
+  background: #020617;
+  border: 1px solid #111827;
+  border-radius: 1rem;
+  padding: .65rem .75rem;
+}
+
+.msg-ok{ color:#4ade80; }
+.msg-bad{ color:#f97373; }
+
+.beds-row{
+  display:flex;
+  gap:.5rem;
+  align-items:center;
+}
+.beds-row-right{
+  justify-content:flex-end;
+  margin-top:.6rem;
+}
+
+.beds-checklist{
+  margin-top:.5rem;
+  border: 1px solid rgba(51,65,85,.9);
+  border-radius: 1rem;
+  background: rgba(2,6,23,.6);
+  padding: .5rem;
+  max-height: 340px;
+  overflow:auto;
+}
+.beds-checkitem{
+  display:flex;
+  gap:.6rem;
+  padding:.5rem .55rem;
+  border-radius:.85rem;
+  cursor:pointer;
+}
+.beds-checkitem:hover{
+  background: rgba(15,23,42,.75);
+}
+.beds-check{
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+.beds-checkmeta{ flex:1; }
+.beds-checktitle{
+  display:flex;
+  justify-content:space-between;
+  gap:.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  color:#e5e7eb;
+}
+.beds-checksub{
+  margin-top: 2px;
+  font-size: 11px;
+  color:#9ca3af;
+}
