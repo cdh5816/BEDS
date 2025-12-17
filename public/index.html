@@ -2,7 +2,6 @@
      This codebase is owned by the user (AIRX) for the Building Earthquake Detection System project.
 -->
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,9 +16,12 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body class="bg-slate-950 text-slate-100 min-h-screen">
   <div class="max-w-6xl mx-auto flex flex-col min-h-screen">
-    <header class="flex items-center justify-between px-6 pt-4 pb-2 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+
+    <!-- ✅ app-header 클래스 추가: 헤더/로그인 패널이 지도 위로 확실히 올라오게 -->
+    <header class="app-header flex items-center justify-between px-6 pt-4 pb-2 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
       <div>
         <div class="text-2xl tracking-[0.3em] uppercase text-slate-50 font-semibold">
           BEDS
@@ -28,6 +30,7 @@
           Building Earthquake Detection System
         </div>
       </div>
+
       <div class="flex items-center gap-3 relative">
         <button id="landing-dashboard" class="btn btn-secondary text-xs hidden">
           Dashboard
@@ -64,8 +67,24 @@
       <section class="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 pt-4">
         <div>
           <div id="landing-map" class="rounded-2xl overflow-hidden border border-slate-800 h-[320px] lg:h-[420px]"></div>
+
+          <!-- ✅ 추가: 지도 클릭으로 좌표/주소 보정 패널 -->
+          <div id="pick-panel" class="mt-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-xs text-slate-200">
+            <div class="font-semibold text-slate-100">지도에서 위치를 클릭해 정확 좌표 찍기</div>
+            <div class="mt-1 text-slate-400">
+              주소검색이 동까지만 나오더라도, 지도에서 정확 위치를 찍으면 좌표는 100% 정확하게 저장할 수 있습니다.
+              (가능하면 자동으로 상세주소도 보정됩니다.)
+            </div>
+            <div class="mt-3 grid gap-1">
+              <div><span class="text-slate-400">좌표:</span> <span id="pick-coords">-</span></div>
+              <div><span class="text-slate-400">주소:</span> <span id="pick-address">-</span></div>
+            </div>
+            <button id="pick-copy" class="btn btn-secondary mt-3 text-xs">좌표/주소 복사</button>
+          </div>
+
           <div id="landing-site-list" class="landing-site-list mt-3 text-xs text-slate-300"></div>
         </div>
+
         <aside>
           <div class="sample-card">
             <div class="sample-header">
@@ -75,6 +94,7 @@
                 안전
               </span>
             </div>
+
             <h2 class="sample-title" id="sample-title">서울역 타워 A동</h2>
             <p class="sample-address" id="sample-address">
               서울특별시 중구 세종대로 1XX
