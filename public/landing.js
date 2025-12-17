@@ -32,7 +32,7 @@ function normalizeSitesResponse(data) {
 
 function statusLabel(status) {
   if (status === 'SAFE') return '안전';
-  if (status === 'CAUTION') return '위험';
+  if (status === 'CAUTION') return '주의';
   if (status === 'ALERT') return '경고';
   return status || 'SAFE';
 }
@@ -40,6 +40,20 @@ function statusBadgeClass(status) {
   if (status === 'ALERT') return 'badge badge-alert';
   if (status === 'CAUTION') return 'badge badge-caution';
   return 'badge badge-safe';
+}
+
+function constructionLabel(v) {
+  if (v === 'IN_PROGRESS') return '공사 진행 중';
+  if (v === 'DONE') return '공사 완료';
+  // 기존 데이터 호환 (없거나 다른 값이면 기본)
+  return v ? String(v) : '공사 진행 중';
+}
+
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -164,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================
-  // Landing map & site list
+  // Landing map
   // =========================
   const mapEl = document.getElementById('landing-map');
   if (!mapEl || typeof L === 'undefined') return;
@@ -175,105 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
-  const siteListEl = document.getElementById('landing-site-list');
-
   // =========================
-  // Pick exact location (click/drag)
-  // =========================
-  const pickCoordsEl = document.getElementById('pick-coords');
-  const pickAddressEl = document.getElementById('pick-address');
-  const pickCopyBtn = document.getElementById('pick-copy');
-  const pickClearBtn = document.getElementById('pick-clear');
-
-  let pickedLat = null;
-  let pickedLon = null;
-  let pickedAddress = null;
-
-  function updatePickUI(lat, lon, addressText) {
-    const coordText = lat != null && lon != null ? `${fmtCoord(lat)}, ${fmtCoord(lon)}` : '-';
-    if (pickCoordsEl) pickCoordsEl.textContent = coordText;
-    if (pickAddressEl) pickAddressEl.textContent = addressText || '-';
-  }
-
-  async function reverseGeocode(lat, lon) {
-    // 서버에 /api/reverse 가 있으면 가장 안정적
-    try {
-      const r = await fetch(`/api/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
-      if (!r.ok) return null;
-      const data = await r.json().catch(() => null);
-      return data?.address || null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function setPicked(lat, lon) {
-    pickedLat = lat;
-    pickedLon = lon;
-    pickedAddress = null;
-
-    updatePickUI(lat, lon, '주소 조회 중...');
-    const addr = await reverseGeocode(lat, lon);
-    pickedAddress = addr || null;
-    updatePickUI(lat, lon, pickedAddress || '(주소를 찾지 못했습니다)');
-  }
-
-  if (pickCopyBtn) {
-    pickCopyBtn.addEventListener('click', async () => {
-      if (pickedLat == null || pickedLon == null) {
-        alert('먼저 지도에서 위치를 클릭해 주세요.');
-        return;
-      }
-      const coordText = `${fmtCoord(pickedLat)}, ${fmtCoord(pickedLon)}`;
-      const text = pickedAddress ? `${pickedAddress}\n${coordText}` : coordText;
-
-      try {
-        await navigator.clipboard.writeText(text);
-        alert('복사 완료!');
-      } catch (e) {
-        prompt('아래 내용을 복사하세요:', text);
-      }
-    });
-  }
-
-  let pickMarker = null;
-
-  if (pickClearBtn) {
-    pickClearBtn.addEventListener('click', () => {
-      if (pickMarker) {
-        map.removeLayer(pickMarker);
-        pickMarker = null;
-      }
-      pickedLat = pickedLon = null;
-      pickedAddress = null;
-      updatePickUI(null, null, null);
-    });
-  }
-
-  map.on('click', async (e) => {
-    // 로그인 패널 열린 상태면 지도 클릭 무시
-    if (document.body.classList.contains('login-open')) return;
-
-    const lat = e.latlng.lat;
-    const lon = e.latlng.lng;
-
-    if (!pickMarker) {
-      pickMarker = L.marker([lat, lon], { draggable: true }).addTo(map);
-      pickMarker.on('dragend', async () => {
-        const p = pickMarker.getLatLng();
-        await setPicked(p.lat, p.lng);
-      });
-    } else {
-      pickMarker.setLatLng([lat, lon]);
-    }
-
-    await setPicked(lat, lon);
-  });
-
-  updatePickUI(null, null, null);
-
-  // =========================
-  // Site modal (if exists)
+  // Modal
   // =========================
   const modalEl = document.getElementById('site-modal');
   const modalBackdrop = document.getElementById('site-modal-backdrop');
@@ -282,10 +199,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalTitle = document.getElementById('site-modal-title');
   const modalAddress = document.getElementById('site-modal-address');
   const modalStatus = document.getElementById('site-modal-status');
+  const modalConstruction = document.getElementById('site-modal-construction'); // ✅ index.html에 추가한 항목
   const modalSensors = document.getElementById('site-modal-sensors');
   const modalSize = document.getElementById('site-modal-size');
   const modalYear = document.getElementById('site-modal-year');
-  const modalCoords = document.getElementById('site-modal-coords');
   const modalNotes = document.getElementById('site-modal-notes');
 
   const modalPan = document.getElementById('site-modal-pan');
@@ -300,19 +217,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalTitle) modalTitle.textContent = site?.name || '-';
     if (modalAddress) modalAddress.textContent = site?.address || '-';
     if (modalStatus) modalStatus.textContent = `${statusLabel(site?.status)} (${site?.status || 'SAFE'})`;
+    if (modalConstruction) modalConstruction.textContent = constructionLabel(site?.constructionStatus || site?.construction_state);
+
     if (modalSensors) modalSensors.textContent = `${site?.sensorCount ?? 0}개`;
     if (modalSize) modalSize.textContent = site?.buildingSize || '-';
     if (modalYear) modalYear.textContent = site?.buildingYear || '-';
-
-    const lat = site?.latitude;
-    const lon = site?.longitude;
-    if (modalCoords) modalCoords.textContent = (Number.isFinite(lat) && Number.isFinite(lon)) ? `${fmtCoord(lat)}, ${fmtCoord(lon)}` : '-';
-    if (modalNotes) modalNotes.textContent = site?.notes ? `메모: ${site.notes}` : '메모: -';
+    if (modalNotes) modalNotes.textContent = site?.notes ? site.notes : '-';
 
     modalEl.classList.remove('hidden');
     modalEl.classList.add('flex');
-    // 모달 뜨면 지도 터치 방지(모바일)
-    document.body.classList.add('login-open');
+
+    // ✅ 모달은 login-open이 아니라 modal-open으로 분리
+    document.body.classList.add('modal-open');
   }
 
   function closeModal() {
@@ -320,8 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalEl.classList.add('hidden');
     modalEl.classList.remove('flex');
     modalSite = null;
-    // 모달 닫으면 지도 터치 복구(로그인 패널 상태와 별개)
-    document.body.classList.remove('login-open');
+    document.body.classList.remove('modal-open');
   }
 
   if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
@@ -360,64 +275,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================
-  // Load sites and markers + clickable list
+  // Sites + markers
   // =========================
+  const siteListEl = document.getElementById('landing-site-list');       // 왼쪽: 진행중 요약
+  const inprogressListEl = document.getElementById('inprogress-site-list'); // 오른쪽: 진행중 카드
+  const inprogressEmptyEl = document.getElementById('inprogress-empty');
+
   const siteMarkers = new Map(); // id -> marker
   let sitesCache = [];
-
-  function renderLandingSiteList(sites) {
-    if (!siteListEl) return;
-
-    if (!sites || sites.length === 0) {
-      siteListEl.innerHTML = '<p>등록된 현장이 없습니다. 관리자 페이지에서 현장을 등록해 주세요.</p>';
-      return;
-    }
-
-    siteListEl.innerHTML = sites.map((s) => {
-      const status = s.status || 'SAFE';
-      const badgeClass = statusBadgeClass(status);
-      const safeName = String(s.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const safeAddr = String(s.address || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-      return `
-        <button type="button"
-                class="site-item w-full text-left"
-                data-site-id="${s.id}">
-          <div class="site-item-main">
-            <span class="site-item-name">${safeName}</span>
-            <span class="site-item-address">${safeAddr}</span>
-          </div>
-          <span class="${badgeClass}">${status}</span>
-        </button>
-      `;
-    }).join('');
-
-    // 클릭 이벤트(위임)
-    siteListEl.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-site-id]');
-      if (!btn) return;
-
-      const id = btn.getAttribute('data-site-id');
-      const site = sitesCache.find((x) => String(x.id) === String(id));
-      if (!site) return;
-
-      const lat = site.latitude;
-      const lon = site.longitude;
-
-      // 지도 이동 + 마커 팝업
-      if (Number.isFinite(lat) && Number.isFinite(lon)) {
-        map.setView([lat, lon], 16, { animate: true });
-
-        const mk = siteMarkers.get(site.id);
-        if (mk) mk.openPopup();
-      }
-
-      // 상세 모달이 있으면 열기
-      if (document.getElementById('site-modal')) {
-        openModal(site);
-      }
-    }, { once: true }); // 중복 등록 방지
-  }
 
   function upsertMarkers(sites) {
     const bounds = [];
@@ -427,9 +292,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const lon = s.longitude;
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
 
-      const popupHtml = `<strong>${s.name || ''}</strong><br>${s.address || ''}`;
-      let mk = siteMarkers.get(s.id);
+      const popupHtml = `<strong>${escapeHtml(s.name || '')}</strong><br>${escapeHtml(s.address || '')}`;
 
+      let mk = siteMarkers.get(s.id);
       if (!mk) {
         mk = L.marker([lat, lon]).addTo(map);
         mk.bindPopup(popupHtml);
@@ -439,6 +304,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mk.setPopupContent(popupHtml);
       }
 
+      mk.off('click');
+      mk.on('click', () => openModal(s));
+
       bounds.push([lat, lon]);
     });
 
@@ -447,12 +315,110 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function updateSampleCard(first) {
-    if (!first) return;
-    const titleEl = document.getElementById('sample-title');
-    const addrEl = document.getElementById('sample-address');
-    if (titleEl) titleEl.textContent = first.name || '-';
-    if (addrEl) addrEl.textContent = first.address || '-';
+  function goSite(site) {
+    if (!site) return;
+
+    const lat = site.latitude;
+    const lon = site.longitude;
+
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      map.setView([lat, lon], 16, { animate: true });
+
+      const mk = siteMarkers.get(site.id);
+      if (mk) mk.openPopup();
+    }
+
+    openModal(site);
+  }
+
+  function renderInProgressLeftList(inProgress) {
+    if (!siteListEl) return;
+
+    if (!inProgress.length) {
+      siteListEl.innerHTML = '<p>현재 “공사 진행 중” 현장이 없습니다.</p>';
+      return;
+    }
+
+    siteListEl.innerHTML = inProgress.map((s) => {
+      const status = s.status || 'SAFE';
+      const badgeClass = statusBadgeClass(status);
+
+      return `
+        <button type="button"
+                class="site-item w-full text-left"
+                data-site-id="${escapeHtml(s.id)}">
+          <div class="site-item-main">
+            <span class="site-item-name">${escapeHtml(s.name || '')}</span>
+            <span class="site-item-address">${escapeHtml(s.address || '')}</span>
+          </div>
+          <span class="${badgeClass}">${escapeHtml(status)}</span>
+        </button>
+      `;
+    }).join('');
+
+    // 이벤트 위임(한 번만 바인딩)
+    if (!siteListEl.__boundClick) {
+      siteListEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-site-id]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-site-id');
+        const site = sitesCache.find((x) => String(x.id) === String(id));
+        if (!site) return;
+        goSite(site);
+      });
+      siteListEl.__boundClick = true;
+    }
+  }
+
+  function renderInProgressRightCards(inProgress) {
+    if (!inprogressListEl) return;
+
+    if (!inProgress.length) {
+      inprogressListEl.innerHTML = '';
+      if (inprogressEmptyEl) inprogressEmptyEl.classList.remove('hidden');
+      return;
+    }
+    if (inprogressEmptyEl) inprogressEmptyEl.classList.add('hidden');
+
+    inprogressListEl.innerHTML = inProgress.map((s) => {
+      const status = s.status || 'SAFE';
+      const badgeClass = statusBadgeClass(status);
+
+      return `
+        <button type="button"
+                class="w-full text-left rounded-2xl border border-slate-800 bg-slate-950/60 p-3 hover:bg-slate-900/40 transition"
+                data-site-id="${escapeHtml(s.id)}">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-sm font-semibold text-slate-100">${escapeHtml(s.name || '')}</div>
+            <span class="${badgeClass}">${escapeHtml(status)}</span>
+          </div>
+          <div class="mt-1 text-xs text-slate-400">${escapeHtml(s.address || '')}</div>
+          <div class="mt-2 text-[11px] text-slate-400">
+            <span class="mr-2">공사: ${escapeHtml(constructionLabel(s.constructionStatus || s.construction_state))}</span>
+            <span class="mr-2">센서: ${escapeHtml(String(s.sensorCount ?? 0))}개</span>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    if (!inprogressListEl.__boundClick) {
+      inprogressListEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-site-id]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-site-id');
+        const site = sitesCache.find((x) => String(x.id) === String(id));
+        if (!site) return;
+        goSite(site);
+      });
+      inprogressListEl.__boundClick = true;
+    }
+  }
+
+  // 진행중 판정: 새 필드 constructionStatus === 'IN_PROGRESS'가 생기면 그걸 우선 사용
+  function isInProgress(site) {
+    const v = site?.constructionStatus ?? site?.construction_state;
+    if (!v) return true; // 기존 데이터 호환: 필드 없으면 일단 진행중으로 간주
+    return String(v) === 'IN_PROGRESS';
   }
 
   fetch('/api/sites')
@@ -461,12 +427,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const sites = normalizeSitesResponse(data);
       sitesCache = sites;
 
-      renderLandingSiteList(sites);
+      // 지도에는 전체 마커
       upsertMarkers(sites);
-      updateSampleCard(sites[0]);
+
+      // 메인(좌/우)은 진행중만
+      const inProgress = sites.filter(isInProgress);
+      renderInProgressLeftList(inProgress);
+      renderInProgressRightCards(inProgress);
     })
     .catch((err) => {
       console.error(err);
       if (siteListEl) siteListEl.innerHTML = '<p>현장 정보를 불러오는 중 오류가 발생했습니다.</p>';
+      if (inprogressListEl) inprogressListEl.innerHTML = '';
+      if (inprogressEmptyEl) inprogressEmptyEl.classList.remove('hidden');
     });
 });
