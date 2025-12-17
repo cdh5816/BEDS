@@ -31,6 +31,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const dashboardBtn = document.getElementById('landing-dashboard');
   const logoutBtn = document.getElementById('landing-logout');
 
+  // ===== helper: body class toggle (mobile touch fix) =====
+  function syncLoginOpenClass() {
+    const isOpen = !!(loginPanel && loginPanel.classList.contains('open'));
+    document.body.classList.toggle('login-open', isOpen);
+  }
+  function closeLoginPanel() {
+    if (loginPanel) loginPanel.classList.remove('open');
+    syncLoginOpenClass();
+  }
+
   function updateHeaderForUser() {
     const user = getCurrentUser();
     if (!user) {
@@ -50,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   updateHeaderForUser();
+  syncLoginOpenClass();
 
   if (dashboardBtn) {
     dashboardBtn.addEventListener('click', () => {
@@ -66,48 +77,78 @@ document.addEventListener('DOMContentLoaded', () => {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       setCurrentUser(null);
+      // ✅ 혹시 로그인 패널 열림 상태로 꼬이는 것 방지
+      document.body.classList.remove('login-open');
       window.location.href = 'index.html';
     });
   }
 
+  // 로그인 토글 버튼: open/close + body.login-open 동기화
   if (loginToggle && loginPanel) {
     loginToggle.addEventListener('click', () => {
       loginPanel.classList.toggle('open');
+      syncLoginOpenClass();
     });
   }
+
+  // 패널 바깥 클릭하면 닫기(모바일에서 특히 유용)
+  document.addEventListener('click', (e) => {
+    if (!loginPanel || !loginToggle) return;
+    const t = e.target;
+    const clickedInsidePanel = loginPanel.contains(t);
+    const clickedToggle = loginToggle.contains(t);
+    if (!clickedInsidePanel && !clickedToggle) {
+      closeLoginPanel();
+    }
+  });
+
+  // ESC로 닫기(PC)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLoginPanel();
+  });
 
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (loginError) loginError.textContent = '';
+
       const idEl = document.getElementById('login-id');
       const pwEl = document.getElementById('login-password');
       const username = (idEl?.value || '').trim();
       const password = pwEl?.value || '';
+
       if (!username || !password) {
         if (loginError) loginError.textContent = 'ID와 비밀번호를 입력해 주세요.';
         return;
       }
+
       try {
         const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
+
         if (!res.ok) {
           if (loginError) loginError.textContent = '로그인에 실패했습니다.';
           return;
         }
+
         const data = await res.json();
         if (!data || !data.ok) {
           if (loginError) loginError.textContent = data.message || 'ID 또는 비밀번호를 확인해 주세요.';
           return;
         }
+
         setCurrentUser({
           username: data.username,
           role: data.role,
           siteIds: data.siteIds || []
         });
+
+        // ✅ 로그인 성공 시 패널 닫기 + 지도 터치 차단 해제
+        closeLoginPanel();
+
         if (data.role === 'ADMIN') {
           window.location.href = 'admin.html';
         } else {
@@ -198,6 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let pickMarker = null;
 
   map.on('click', async (e) => {
+    // ✅ 로그인 패널이 열린 상태면, 지도가 클릭 먹지 않도록 (CSS로 차단되지만 이중 안전)
+    if (document.body.classList.contains('login-open')) return;
+
     const lat = e.latlng.lat;
     const lon = e.latlng.lng;
 
