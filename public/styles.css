@@ -1,734 +1,149 @@
-/* © AIRX (individual business). All rights reserved.
-   Tailwind 기반 레이아웃에 필요한 최소 커스텀 CSS입니다.
-   목적: Leaflet 지도 위에 헤더/로그인 UI가 절대 가려지지 않도록 레이어(z-index) 구조를 고정합니다.
-*/
-
-:root{
-  --z-map: 1;
-  --z-map-controls: 2;
-  --z-header: 10000;
-  --z-login: 20000;
-}
-
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
 /* =========================
-   공통 헤더/푸터
-   ========================= */
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #1f2933;
-  background-color: rgba(2,6,23,0.96);
-  backdrop-filter: blur(12px);
-
-  /* 핵심: 지도보다 항상 위 */
-  position: sticky;
-  top: 0;
-  z-index: var(--z-header);
-}
-
-.app-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #e5e7eb;
-}
-
-.subtitle {
-  margin-top: 0.15rem;
-  font-size: 0.7rem;
-  color: #9ca3af;
-}
-
-.app-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.75rem;
-}
-
-.nav-link {
-  color: #9ca3af;
-  text-decoration: none;
-}
-
-.nav-link:hover {
-  color: #e5e7eb;
-}
-
-.nav-link-active {
-  color: #e5e7eb;
-  font-weight: 600;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.3rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-primary {
-  background-color: #22c55e;
-  color: #020617;
-}
-
-.btn-primary:hover {
-  background-color: #4ade80;
-}
-
-.btn-secondary {
-  background-color: #020617;
-  color: #e5e7eb;
-  border: 1px solid #374151;
-}
-
-.btn-secondary:hover {
-  background-color: #111827;
-}
-
-.btn-nav {
-  height: 2rem;
-}
-
-.btn-full {
-  width: 100%;
-}
-
-.app-footer {
-  padding: 0.6rem 1.5rem;
-  border-top: 1px solid #1f2933;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* =========================
-   로그인 패널
+   ADMIN polish patch
+   © AIRX (individual business). All rights reserved.
    ========================= */
 
-/* 기본(PC): 헤더 오른쪽 드롭다운 */
-.login-panel {
-  position: absolute;
-  top: 2.6rem;
-  right: 0;
-  width: 260px;
-  background: rgba(15,23,42,0.98);
-  border-radius: 1rem;
-  border: 1px solid rgba(51,65,85,0.9);
-  padding: 0.75rem 0.9rem 0.9rem;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.6);
-  display: none;
-
-  /* 핵심: 지도/컨트롤보다 무조건 위 */
-  z-index: var(--z-login);
-}
-
-.login-panel.open {
-  display: block;
-}
-
-.login-panel-form .form-row {
-  margin-bottom: 0.5rem;
-}
-
-.login-panel-form label {
-  display: block;
-  font-size: 11px;
-  color: #94a3b8;
-  margin-bottom: 2px;
-}
-
-.login-panel-form input {
-  width: 100%;
-  font-size: 12px;
-  padding: 0.35rem 0.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid #1f2937;
-  background-color: #020617;
-  color: #e5e7eb;
-}
-
-.login-panel-form input:focus {
-  outline: none;
-  border-color: #22c55e;
-}
-
-.login-error {
-  color: #f97373;
-  font-size: 11px;
-  min-height: 14px;
-  margin-top: 3px;
-}
-
-.login-hint {
-  font-size: 11px;
-  color: #64748b;
-  margin-top: 0.35rem;
-}
-
-/* =========================
-   랜딩 사이트 리스트 + 샘플 카드
-   ========================= */
-.landing-site-list {
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.sample-card {
-  background:
-    radial-gradient(circle at top left, rgba(45,212,191,0.08), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(56,189,248,0.12), transparent 60%);
-  border-radius: 1.5rem;
-  border: 1px solid rgba(51,65,85,0.9);
-  padding: 1rem;
+.admin-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.sample-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-.sample-label {
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 10px;
-}
-
-.sample-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  font-size: 10px;
-}
-
-.sample-status-safe {
-  background-color: rgba(34,197,94,0.12);
-  color: #4ade80;
-}
-
-.sample-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: #22c55e;
-}
-
-.sample-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #e5e7eb;
-}
-
-.sample-address {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-.sample-kpis {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
   gap: 0.4rem;
 }
 
-.sample-kpi-label {
-  font-size: 10px;
-  color: #94a3b8;
-}
-
-.sample-kpi-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e5e7eb;
-}
-
-.sample-note {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 0.2rem;
-}
-
-/* =========================
-   공통 레이아웃 / 패널
-   ========================= */
-.layout {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem 1.5rem 1.5rem;
-  flex: 1;
-}
-
-@media (min-width: 1024px) {
-  .layout {
-    flex-direction: row;
-  }
-}
-
-.panel {
-  background-color: rgba(15,23,42,0.9);
-  border-radius: 1.25rem;
-  border: 1px solid #111827;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
+.admin-filters {
+  display: grid;
+  grid-template-columns: 120px 140px minmax(0, 1fr);
   gap: 0.6rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0.25rem;
 }
 
-.panel-sites {
-  flex: 1 1 0;
-}
-
-.panel-form {
-  width: 100%;
-  max-width: 380px;
-}
-
-.panel-client-main {
-  flex: 2 1 0;
-}
-
-.panel-client-chart {
-  flex: 1 1 0;
-}
-
-/* 패널 내부 요소 */
-.panel-header {
+.admin-filter {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  font-size: 0.7rem;
-}
-
-.filters select,
-.filters input {
-  background-color: #020617;
-  border-radius: 0.5rem;
-  border: 1px solid #374151;
-  padding: 0.2rem 0.5rem;
-  color: #e5e7eb;
-  font-size: 0.7rem;
-}
-
-/* =========================
-   폼
-   ========================= */
-.form-row {
-  margin-bottom: 0.6rem;
-  font-size: 12px;
-}
-
-.form-row label {
-  display: block;
+  flex-direction: column;
+  gap: 4px;
   font-size: 11px;
-  color: #e5e7eb;
-  margin-bottom: 4px;
+  color: #cbd5e1;
 }
 
-.form-row input,
-.form-row textarea,
-.form-row select {
-  width: 100%;
-  font-size: 12px;
-  padding: 0.4rem 0.55rem;
-  border-radius: 0.6rem;
-  border: 1px solid #1f2937;
+.admin-filter select,
+.admin-filter input {
   background-color: #020617;
+  border-radius: 0.6rem;
+  border: 1px solid #374151;
+  padding: 0.35rem 0.55rem;
+  color: #e5e7eb;
+  font-size: 12px;
+}
+
+.admin-filter-wide {
+  min-width: 0;
+}
+
+.admin-detail-card {
+  margin-top: 0.75rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(51,65,85,0.9);
+  background:
+    radial-gradient(circle at top left, rgba(45,212,191,0.08), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(56,189,248,0.08), transparent 60%);
+  padding: 0.85rem;
+}
+
+.admin-detail-title {
+  font-size: 12px;
+  font-weight: 700;
   color: #e5e7eb;
 }
 
-.form-row input:focus,
-.form-row textarea:focus,
-.form-row select:focus {
-  outline: none;
-  border-color: #22c55e;
+.admin-detail-body {
+  margin-top: 0.45rem;
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.45;
 }
 
-.form-row-inline {
+.admin-form-actions {
   display: flex;
   gap: 0.5rem;
-  align-items: flex-end;
-}
-
-.form-col {
-  flex: 1;
-}
-
-.required {
-  color: #f97373;
-  margin-left: 2px;
-}
-
-.help-text {
-  font-size: 11px;
-  color: #64748b;
-  margin-top: 0.2rem;
-}
-
-.form-message {
-  font-size: 11px;
-  margin-top: 0.3rem;
-}
-
-/* =========================
-   현장 리스트
-   ========================= */
-.site-summary {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-.site-list {
   margin-top: 0.4rem;
-  max-height: 220px;
-  overflow-y: auto;
-  font-size: 11px;
 }
 
-.site-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.35rem 0.45rem;
-  border-radius: 0.6rem;
-  border: 1px solid transparent;
-  cursor: pointer;
-}
-
-.site-item:hover {
-  background-color: rgba(15,23,42,0.9);
-  border-color: rgba(51,65,85,0.9);
-}
-
-.site-item-active {
-  background-color: rgba(22,101,52,0.18);
-  border-color: #16a34a;
-}
-
-.site-item-main {
-  display: flex;
-  flex-direction: column;
-}
-
-.site-item-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: #e5e7eb;
-}
-
-.site-item-address {
+.admin-mini-badge {
   font-size: 10px;
-  color: #9ca3af;
-}
-
-.badge {
-  font-size: 9px;
-  padding: 0.05rem 0.4rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  border: 1px solid rgba(34,197,94,0.45);
+  color: #a7f3d0;
+  background: rgba(34,197,94,0.08);
 }
 
-.badge-safe {
-  background-color: rgba(22,163,74,0.18);
-  color: #4ade80;
-}
-
-.badge-caution {
-  background-color: rgba(234,179,8,0.16);
-  color: #fbbf24;
-}
-
-.badge-alert {
-  background-color: rgba(239,68,68,0.18);
-  color: #f97373;
-}
-
-/* =========================
-   지도
-   ========================= */
-.site-map {
-  width: 100%;
-  height: 260px;
-  margin-top: 0.3rem;
-}
-
-@media (min-width: 1024px) {
-  .site-map {
-    height: 320px;
-  }
-}
-
-/* Leaflet 레이어는 항상 UI 아래 */
-#landing-map,
-#map,
-.leaflet-container,
-.leaflet-pane {
-  position: relative;
-  z-index: var(--z-map) !important;
-}
-
-/* Leaflet 컨트롤도 로그인/헤더보다 아래 */
-.leaflet-top,
-.leaflet-bottom,
-.leaflet-control {
-  z-index: var(--z-map-controls) !important;
-}
-
-/* =========================
-   모니터링 KPI + 차트
-   ========================= */
-.client-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem 1.5rem 1.5rem;
-  flex: 1;
-}
-
-@media (min-width: 1024px) {
-  .client-layout {
-    flex-direction: row;
-  }
-}
-
-.client-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.client-site-select label {
-  display: block;
-  font-size: 11px;
-  color: #e5e7eb;
-  margin-bottom: 3px;
-}
-
-.client-site-select select {
-  background-color: #020617;
-  border-radius: 0.6rem;
-  border: 1px solid #374151;
-  padding: 0.35rem 0.6rem;
-  color: #e5e7eb;
-  font-size: 12px;
-}
-
-.client-status-badge {
-  font-size: 12px;
-}
-
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-@media (min-width: 1024px) {
-  .metric-grid {
-    grid-template-columns: repeat(4, minmax(0,1fr));
-  }
-}
-
-.kpi-card {
-  background-color: #020617;
-  border-radius: 1.1rem;
-  border: 1px solid #111827;
-  padding: 0.7rem 0.8rem;
-}
-
-.kpi-label {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-.kpi-value {
-  margin-top: 0.2rem;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #e5e7eb;
-}
-
-.kpi-sub {
-  margin-top: 0.2rem;
-  font-size: 10px;
-  color: #6b7280;
-}
-
-.mini-chart {
-  margin-top: 0.5rem;
-}
-
-.mini-chart-bars {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0,1fr));
-  gap: 4px;
-  align-items: flex-end;
-  height: 120px;
-}
-
-.mini-chart-bar {
-  border-radius: 999px;
-  background: linear-gradient(to top, #22c55e, #4ade80);
-}
-
-.mini-chart-labels {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0,1fr));
-  gap: 4px;
-  margin-top: 4px;
-  font-size: 10px;
-  color: #6b7280;
-  text-align: center;
-}
-
-/* =========================
-   지오코딩 결과
-   ========================= */
-.geocode-results {
-  margin-top: 0.4rem;
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-.geocode-item {
-  padding: 0.3rem 0.4rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-}
-
-.geocode-item:hover {
-  background-color: rgba(15,23,42,0.9);
-}
-
-/* =========================
-   고객 계정 리스트
-   ========================= */
-.user-list {
-  font-size: 11px;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.user-card {
-  border-radius: 0.8rem;
+.admin-pick-card {
+  margin-top: 0.85rem;
+  border-radius: 1rem;
   border: 1px solid rgba(51,65,85,0.9);
-  padding: 0.5rem 0.6rem;
-  margin-bottom: 0.4rem;
+  background: rgba(2,6,23,0.6);
+  padding: 0.75rem;
 }
 
-.user-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.2rem;
-}
-
-.user-card-id {
-  font-size: 11px;
-  font-weight: 600;
+.admin-pick-title {
+  font-size: 12px;
+  font-weight: 700;
   color: #e5e7eb;
 }
 
-.user-card-role {
-  font-size: 10px;
-  color: #94a3b8;
+.admin-pick-grid {
+  margin-top: 0.45rem;
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  color: #cbd5e1;
 }
 
-.user-card-sites {
-  font-size: 10px;
-  color: #9ca3af;
+/* Modal */
+.admin-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
 }
 
-/* =========================
-   모바일 로그인 패널이 지도에 가려지지 않게
-   ========================= */
-/* 모바일에서 로그인 패널은 화면에 고정해서 터치 안정성 확보 */
-@media (max-width: 640px) {
-  .login-panel {
-    position: fixed !important;
-    top: 4.5rem !important;
-    right: 1rem !important;
-    left: 1rem !important;
-    width: auto !important;
-  }
+.admin-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
 }
 
-/* ======================================================
-   PATCH: Mobile login panel must stay above Leaflet map
-   © AIRX (individual business). All rights reserved.
-   - :has() 미사용 (모바일/웹뷰 호환)
-   - landing.js에서 body에 .login-open을 붙여야 "지도 터치 차단"이 동작함
-   ====================================================== */
-@media (max-width: 768px) {
+.admin-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(51,65,85,0.9);
+  background: rgba(2,6,23,0.98);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  padding: 1rem;
+}
 
-  /* 헤더는 항상 최상단 */
-  .app-header {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 20000 !important;
+.admin-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .admin-filters {
+    grid-template-columns: 1fr 1fr;
   }
-
-  /* 로그인 패널은 지도 DOM과 분리해서 강제로 위에 띄움 */
-  .login-panel {
-    position: fixed !important;
-    top: 4.5rem !important;
-    left: 1rem !important;
-    right: 1rem !important;
-    width: auto !important;
-    z-index: 30000 !important;
-  }
-
-  /* Leaflet 지도/컨트롤 레이어는 아래로 */
-  #landing-map,
-  .leaflet-container,
-  .leaflet-pane,
-  .leaflet-map-pane,
-  .leaflet-control-container,
-  .leaflet-top,
-  .leaflet-bottom {
-    z-index: 1 !important;
-  }
-
-  /* ✅ 핵심: 로그인 패널이 열렸을 때만 지도 터치 차단 (100% 호환) */
-  body.login-open #landing-map,
-  body.login-open .leaflet-container,
-  body.login-open .leaflet-pane,
-  body.login-open .leaflet-map-pane,
-  body.login-open .leaflet-control-container {
-    pointer-events: none !important;
-  }
-
-  body.login-open .login-panel,
-  body.login-open .login-panel *,
-  body.login-open .app-header,
-  body.login-open .app-header * {
-    pointer-events: auto !important;
+  .admin-filter-wide {
+    grid-column: 1 / -1;
   }
 }
