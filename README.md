@@ -1,14 +1,48 @@
+# Deb's (Detection Earthquake Building System)
 
-# BEDS v2 - Building Earthquake Detection System
+© AIRX (individual business). All rights reserved.
 
-© AIRX (individual business) - All rights reserved.
+## 왜 Render에서 “현장 등록 후 사라짐”이 생기나
 
-이 패키지는 형님용 BEDS v2 웹 기본 구조입니다.
+Render는 서비스가 재시작(재배포/슬립 해제 등)될 때 서버 메모리와 로컬 파일이 초기화될 수 있습니다.
+따라서 **JSON 파일 저장만으로는** 현장 데이터가 유지되지 않습니다.
 
-- 공개 지도: 모든 현장 위치 + 안전/주의/경고/신호끊김 상태 공개 표시
-- 관리자 로그인(admin@beds.local / bedsadmin123!):
-  - 주소 입력 → 카카오 REST API로 위/경도 자동 계산
-  - 센서 설치 개수 / 건물 규모 / 준공 연도 / 메모 입력
-- 고객 로그인(customer@beds.local / bedscustomer123!):
-  - 자기 현장 선택 → 현재 상태 뱃지 + 센서 개수 + 흔들림/휨 + 최근 타임라인
-- 센서 데이터 수집 API: `/api/sensors/ingest`
+이 프로젝트는 아래 방식으로 해결했습니다:
+
+- `DATABASE_URL` 환경변수가 있으면 **PostgreSQL(권장)** 사용
+- 없으면 로컬 개발용으로만 JSON 저장(주의: Render에서는 날아갈 수 있음)
+
+## 로컬 실행
+
+```bash
+npm install
+npm start
+```
+
+기본 포트: `4000`
+
+## 기본 관리자 계정
+
+- ID: `operator`
+- PW: `beds2025!`
+
+## Render 배포 (현장 데이터 유지하려면 필수)
+
+1) Render에서 PostgreSQL 생성
+2) Web Service 환경변수에 `DATABASE_URL` 추가
+3) 재배포
+
+서버 부팅 시 자동으로 테이블을 생성하고(마이그레이션), 샘플 현장/관리자 계정을 시드합니다.
+
+## API
+
+- Health: `GET /api/health`
+- 로그인: `POST /api/login`
+- 현장 목록: `GET /api/sites`
+- 현장 등록: `POST /api/sites`
+- 현장 수정: `PUT /api/sites/:id`
+- 현장 삭제: `DELETE /api/sites/:id`
+- 고객 계정 목록: `GET /api/users`
+- 고객 계정 생성: `POST /api/users`
+- 고객 계정 삭제: `DELETE /api/users/:id`
+- 고객 계정 현장 할당: `PUT /api/users/:id/sites`
