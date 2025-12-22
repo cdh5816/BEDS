@@ -31,17 +31,21 @@
       <section class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-base font-semibold text-slate-100">전체 현장</h1>
+
           <div class="flex items-center gap-2">
+            <!-- ✅ 기존 "공사상태" 필터 → "현장조건" (value는 그대로 유지) -->
             <select id="filter-construction" class="text-xs bg-slate-950 border border-slate-800 rounded-xl px-2 py-2">
-              <option value="ALL">공사상태 전체</option>
-              <option value="IN_PROGRESS">공사 진행 중</option>
-              <option value="DONE">공사 완료</option>
+              <option value="ALL">현장조건 전체</option>
+              <option value="IN_PROGRESS">진행중</option>
+              <option value="DONE">완료</option>
             </select>
+
+            <!-- ✅ 기존 "위험상태" 필터 → "현장조건" (SAFE/CAUTION/ALERT value 유지) -->
             <select id="filter-status" class="text-xs bg-slate-950 border border-slate-800 rounded-xl px-2 py-2">
-              <option value="ALL">위험상태 전체</option>
-              <option value="SAFE">SAFE</option>
-              <option value="CAUTION">CAUTION</option>
-              <option value="ALERT">ALERT</option>
+              <option value="ALL">현장조건 전체</option>
+              <option value="SAFE">납품현장</option>
+              <option value="CAUTION">공사중 현장</option>
+              <option value="ALERT">영업중 현장</option>
             </select>
           </div>
         </div>
