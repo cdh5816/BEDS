@@ -15,16 +15,25 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
-function statusKo(v) {
-  if (v === 'SAFE') return '안전';
-  if (v === 'CAUTION') return '주의';
-  if (v === 'ALERT') return '경고';
+// ✅ 현장조건 라벨(기존 status 필드 재사용: SAFE/CAUTION/ALERT)
+function conditionKo(v) {
+  if (v === 'SAFE') return '납품현장';
+  if (v === 'CAUTION') return '공사중 현장';
+  if (v === 'ALERT') return '영업중 현장';
+  return v || 'SAFE';
+}
+
+// ✅ 뱃지 표시 텍스트(리스트에서도 코드값 대신 한글로)
+function conditionBadgeText(v) {
+  if (v === 'SAFE') return '납품';
+  if (v === 'CAUTION') return '공사중';
+  if (v === 'ALERT') return '영업중';
   return v || 'SAFE';
 }
 
 function constructionKo(v) {
-  if (v === 'DONE') return '공사 완료';
-  return '공사 진행 중';
+  if (v === 'DONE') return '완료';
+  return '진행중';
 }
 
 function getConstructionState(site) {
@@ -54,7 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const c = getConstructionState(site);
+    const c = getConstructionState(site) || 'IN_PROGRESS';
+    const st = site.status || 'SAFE';
+
     detailEl.innerHTML = `
       <div class="grid gap-2">
         <div class="text-lg font-semibold text-slate-100">${escapeHtml(site.name || '-')}</div>
@@ -62,19 +73,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="grid grid-cols-2 gap-2 text-xs mt-2">
           <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <div class="text-slate-400">공사 상태</div>
+            <div class="text-slate-400">현장조건</div>
+            <div class="mt-1 font-semibold">${escapeHtml(conditionKo(st))} (${escapeHtml(st)})</div>
+          </div>
+
+          <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+            <div class="text-slate-400">진행 상태</div>
             <div class="mt-1 font-semibold">${escapeHtml(constructionKo(c))}</div>
           </div>
+
           <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <div class="text-slate-400">위험 상태</div>
-            <div class="mt-1 font-semibold">${escapeHtml(statusKo(site.status))} (${escapeHtml(site.status || 'SAFE')})</div>
+            <div class="text-slate-400">공사일정</div>
+            <div class="mt-1 font-semibold">${escapeHtml(String(site.sensorCount ?? 0))}</div>
           </div>
+
           <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <div class="text-slate-400">센서 수</div>
-            <div class="mt-1 font-semibold">${escapeHtml(String(site.sensorCount ?? 0))}개</div>
-          </div>
-          <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <div class="text-slate-400">준공 연도</div>
+            <div class="text-slate-400">실정보고 진행 상황</div>
             <div class="mt-1 font-semibold">${escapeHtml(site.buildingYear || '-')}</div>
           </div>
         </div>
@@ -82,7 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-xs">
           <div class="text-slate-400">건물 규모</div>
           <div class="mt-1">${escapeHtml(site.buildingSize || '-')}</div>
-          <div class="text-slate-400 mt-2">메모</div>
+
+          <div class="text-slate-400 mt-2">특이사항</div>
           <div class="mt-1 text-slate-300">${escapeHtml(site.notes || '-')}</div>
         </div>
 
@@ -124,17 +139,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const st = s.status || 'SAFE';
       const c = getConstructionState(s) || 'IN_PROGRESS';
       const active = String(selectedId) === String(s.id) ? ' ring-2 ring-slate-700 ' : '';
+
       return `
         <button type="button"
                 data-site-id="${escapeHtml(s.id)}"
                 class="w-full text-left rounded-2xl border border-slate-800 bg-slate-950/60 p-3 hover:bg-slate-900/40 transition ${active}">
           <div class="flex items-center justify-between gap-2">
             <div class="text-sm font-semibold text-slate-100">${escapeHtml(s.name || '-')}</div>
-            <span class="${badgeClass(st)}">${escapeHtml(st)}</span>
+            <span class="${badgeClass(st)}">${escapeHtml(conditionBadgeText(st))}</span>
           </div>
           <div class="mt-1 text-xs text-slate-400">${escapeHtml(s.address || '-')}</div>
           <div class="mt-2 text-[11px] text-slate-400">
-            공사: ${escapeHtml(constructionKo(c))} · 센서: ${escapeHtml(String(s.sensorCount ?? 0))}개
+            진행: ${escapeHtml(constructionKo(c))} · 공사일정: ${escapeHtml(String(s.sensorCount ?? 0))}
           </div>
         </button>
       `;
