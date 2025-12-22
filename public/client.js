@@ -1,7 +1,6 @@
 // © AIRX (individual business). All rights reserved.
 // This codebase is owned by the user (AIRX) for the Building Earthquake Detection System project.
 
-
 function getCurrentUser() {
   try {
     const raw = localStorage.getItem('bedsUser');
@@ -14,14 +13,21 @@ function getCurrentUser() {
 
 function ensureLoggedIn() {
   const user = getCurrentUser();
-  if (!user) {
-    window.location.href = 'index.html';
-  }
+  if (!user) window.location.href = 'index.html';
   return user;
+}
+
+// /api/sites 응답이 {sites:[...]} 또는 [...] 둘 다 받기
+function normalizeSitesResponse(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.sites)) return data.sites;
+  return [];
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const user = ensureLoggedIn();
+
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
@@ -62,26 +68,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }).addTo(map);
   }
 
+  // ✅ 현장조건 라벨 통일 (형님이 admin에 붙인 의미 기준)
+  function statusLabel(status) {
+    if (status === 'SAFE') return '납품현장';
+    if (status === 'CAUTION') return '공사중 현장';
+    if (status === 'ALERT') return '영업중 현장';
+    return '납품현장';
+  }
+
   function renderForCurrentSite() {
-    const site = sites.find((s) => s.id === currentSiteId);
+    const site = sites.find((s) => String(s.id) === String(currentSiteId));
     if (!site) return;
 
     if (statusBadge) {
       const status = site.status || 'SAFE';
       let badgeClass = 'badge badge-safe';
-      let label = '안전';
-      if (status === 'ALERT') {
-        badgeClass = 'badge badge-alert';
-        label = '경고';
-      } else if (status === 'CAUTION') {
-        badgeClass = 'badge badge-caution';
-        label = '주의';
-      }
+      if (status === 'ALERT') badgeClass = 'badge badge-alert';
+      else if (status === 'CAUTION') badgeClass = 'badge badge-caution';
+
+      // ✅ 여기만 변경: 안전/주의/경고 -> 납품현장/공사중 현장/영업중 현장
+      const label = statusLabel(status);
+
       statusBadge.className = 'client-status-badge ' + badgeClass;
-      statusBadge.textContent = label;
+      statusBadge.textContent = `${label} (${status})`;
     }
 
-    const seed = site.id.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+    const seed = String(site.id).split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
     function rnd(mult, offset) {
       return (Math.sin(seed + offset) + 1) / 2 * mult;
     }
@@ -106,9 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
         bar.style.height = (15 + v * 4) + 'px';
         barsEl.appendChild(bar);
 
-        const label = document.createElement('div');
-        label.textContent = days[i];
-        labelsEl.appendChild(label);
+        const labelEl = document.createElement('div');
+        labelEl.textContent = days[i];
+        labelsEl.appendChild(labelEl);
       }
     }
 
@@ -125,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderSiteOptions() {
     if (!siteSelect) return;
     siteSelect.innerHTML = '';
+
     let allowedIds = null;
     if (user && user.role === 'CLIENT') {
       if (Array.isArray(user.siteIds)) {
@@ -133,8 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
         allowedIds = user.siteIds.split(',').map((s) => s.trim());
       }
     }
+
     const visibleSites = Array.isArray(allowedIds) && allowedIds.length
-      ? sites.filter((s) => allowedIds.includes(s.id))
+      ? sites.filter((s) => allowedIds.includes(String(s.id)))
       : sites;
 
     if (!visibleSites.length) {
@@ -147,15 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     visibleSites.forEach((s) => {
       const opt = document.createElement('option');
-      opt.value = s.id;
-      opt.textContent = s.name;
+      opt.value = String(s.id);
+      opt.textContent = s.name || String(s.id);
       siteSelect.appendChild(opt);
     });
 
-    if (!currentSiteId && visibleSites.length) {
-      currentSiteId = visibleSites[0].id;
-    }
-    siteSelect.value = currentSiteId;
+    if (!currentSiteId && visibleSites.length) currentSiteId = visibleSites[0].id;
+
+    siteSelect.value = String(currentSiteId);
     renderForCurrentSite();
   }
 
@@ -169,8 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadSites() {
     try {
       const res = await fetch('/api/sites');
-      const data = await res.json();
-      sites = data && Array.isArray(data.sites) ? data.sites : [];
+      const data = await res.json().catch(() => null);
+      sites = normalizeSitesResponse(data);
       renderSiteOptions();
     } catch (err) {
       console.error(err);
