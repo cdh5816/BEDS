@@ -30,12 +30,22 @@ function normalizeSitesResponse(data) {
   return [];
 }
 
+// ✅ 현장조건 라벨
 function statusLabel(status) {
-  if (status === 'SAFE') return '안전';
-  if (status === 'CAUTION') return '주의';
-  if (status === 'ALERT') return '경고';
+  if (status === 'SAFE') return '납품현장';
+  if (status === 'CAUTION') return '공사중 현장';
+  if (status === 'ALERT') return '영업중 현장';
   return status || 'SAFE';
 }
+
+// ✅ 배지에 찍힐 텍스트(코드값 SAFE/CAUTION/ALERT 노출 방지)
+function statusCodeLabel(status) {
+  if (status === 'SAFE') return '납품현장';
+  if (status === 'CAUTION') return '공사중';
+  if (status === 'ALERT') return '영업중';
+  return status || '납품현장';
+}
+
 function statusBadgeClass(status) {
   if (status === 'ALERT') return 'badge badge-alert';
   if (status === 'CAUTION') return 'badge badge-caution';
@@ -203,9 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalAddress = document.getElementById('site-modal-address');
   const modalStatus = document.getElementById('site-modal-status');
   const modalConstruction = document.getElementById('site-modal-construction');
-  const modalSensors = document.getElementById('site-modal-sensors');
+  const modalSensors = document.getElementById('site-modal-sensors'); // ✅ 공사일정 표시로 사용
   const modalSize = document.getElementById('site-modal-size');
-  const modalYear = document.getElementById('site-modal-year');
+  const modalYear = document.getElementById('site-modal-year');       // ✅ 실정보고 진행 상황 표시로 사용
   const modalNotes = document.getElementById('site-modal-notes');
 
   const modalPan = document.getElementById('site-modal-pan');
@@ -219,12 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (modalTitle) modalTitle.textContent = site?.name || '-';
     if (modalAddress) modalAddress.textContent = site?.address || '-';
-    if (modalStatus) modalStatus.textContent = `${statusLabel(site?.status)} (${site?.status || 'SAFE'})`;
+
+    // ✅ "현장조건" 값 표시 (SAFE/CAUTION/ALERT 코드 노출 X)
+    if (modalStatus) modalStatus.textContent = statusLabel(site?.status);
 
     const c = getConstructionState(site);
     if (modalConstruction) modalConstruction.textContent = constructionLabel(c);
 
-    if (modalSensors) modalSensors.textContent = `${site?.sensorCount ?? 0}개`;
+    // ✅ 기존 sensorCount / buildingYear 필드를 "공사일정 / 실정보고 진행 상황"으로만 표시(필드명은 그대로 사용)
+    if (modalSensors) modalSensors.textContent = `${site?.sensorCount ?? 0}`;
     if (modalSize) modalSize.textContent = site?.buildingSize || '-';
     if (modalYear) modalYear.textContent = site?.buildingYear || '-';
     if (modalNotes) modalNotes.textContent = site?.notes ? site.notes : '-';
@@ -295,7 +308,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const lon = s.longitude;
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
 
-      const popupHtml = `<strong>${escapeHtml(s.name || '')}</strong><br>${escapeHtml(s.address || '')}`;
+      // ✅ 팝업에서도 상태코드 노출 X
+      const popupHtml = `
+        <div style="min-width:240px">
+          <div style="font-weight:700;margin-bottom:4px">${escapeHtml(s.name || '')}</div>
+          <div style="font-size:12px;color:#cbd5e1">${escapeHtml(s.address || '')}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:6px">
+            현장조건: ${escapeHtml(statusLabel(s.status))}
+          </div>
+        </div>
+      `;
 
       let mk = siteMarkers.get(s.id);
       if (!mk) {
@@ -352,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="site-item-name">${escapeHtml(s.name || '')}</span>
             <span class="site-item-address">${escapeHtml(s.address || '')}</span>
           </div>
-          <span class="${badgeClass}">${escapeHtml(status)}</span>
+          <span class="${badgeClass}">${escapeHtml(statusCodeLabel(status))}</span>
         </button>
       `;
     }).join('');
@@ -391,12 +413,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 data-site-id="${escapeHtml(s.id)}">
           <div class="flex items-center justify-between gap-2">
             <div class="text-sm font-semibold text-slate-100">${escapeHtml(s.name || '')}</div>
-            <span class="${badgeClass}">${escapeHtml(status)}</span>
+            <span class="${badgeClass}">${escapeHtml(statusCodeLabel(status))}</span>
           </div>
           <div class="mt-1 text-xs text-slate-400">${escapeHtml(s.address || '')}</div>
           <div class="mt-2 text-[11px] text-slate-400">
             <span class="mr-2">공사: ${escapeHtml(constructionLabel(c))}</span>
-            <span class="mr-2">센서: ${escapeHtml(String(s.sensorCount ?? 0))}개</span>
+            <span class="mr-2">공사일정: ${escapeHtml(String(s.sensorCount ?? 0))}</span>
           </div>
         </button>
       `;
