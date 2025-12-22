@@ -47,12 +47,12 @@
 
       <div class="admin-filters">
         <label class="admin-filter">
-          상태
+          현장조건
           <select id="status-filter">
             <option value="ALL">전체</option>
-            <option value="SAFE">안전</option>
-            <option value="CAUTION">주의</option>
-            <option value="ALERT">경고</option>
+            <option value="SAFE">납품현장</option>
+            <option value="CAUTION">공사중 현장</option>
+            <option value="ALERT">영업중 현장</option>
           </select>
         </label>
 
@@ -119,11 +119,11 @@
         </div>
 
         <div class="form-row">
-          <label for="edit-status">안전 상태</label>
+          <label for="edit-status">현장조건</label>
           <select id="edit-status">
-            <option value="SAFE">SAFE (안전)</option>
-            <option value="CAUTION">CAUTION (주의)</option>
-            <option value="ALERT">ALERT (경고)</option>
+            <option value="SAFE">SAFE (납품현장)</option>
+            <option value="CAUTION">CAUTION (공사중 현장)</option>
+            <option value="ALERT">ALERT (영업중 현장)</option>
           </select>
         </div>
 
@@ -136,7 +136,7 @@
         </div>
 
         <div class="form-row">
-          <label for="edit-sensorCount">센서 설치 개수</label>
+          <label for="edit-sensorCount">공사일정</label>
           <input type="number" id="edit-sensorCount" min="0" placeholder="예: 3" />
         </div>
 
@@ -146,8 +146,8 @@
         </div>
 
         <div class="form-row">
-          <label for="edit-buildingYear">준공 연도</label>
-          <input type="text" id="edit-buildingYear" placeholder="예: 2005" />
+          <label for="edit-buildingYear">실정보고 진행 상황</label>
+          <input type="text" id="edit-buildingYear" placeholder="예: 도면 검토 완료 / 협의 중 / 승인 대기" />
         </div>
 
         <div class="form-row">
@@ -221,30 +221,30 @@
 
         <div class="grid grid-cols-2 gap-2">
           <div class="form-row">
-            <label for="create-status">안전 상태</label>
+            <label for="create-status">현장조건</label>
             <select id="create-status">
-              <option value="SAFE">SAFE</option>
-              <option value="CAUTION">CAUTION</option>
-              <option value="ALERT">ALERT</option>
+              <option value="SAFE">SAFE (납품현장)</option>
+              <option value="CAUTION">CAUTION (공사중 현장)</option>
+              <option value="ALERT">ALERT (영업중 현장)</option>
             </select>
           </div>
           <div class="form-row">
             <label for="create-construction">공사 상태</label>
             <select id="create-construction">
-              <option value="IN_PROGRESS">IN_PROGRESS</option>
-              <option value="DONE">DONE</option>
+              <option value="IN_PROGRESS">IN_PROGRESS (진행중)</option>
+              <option value="DONE">DONE (완료)</option>
             </select>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
           <div class="form-row">
-            <label for="create-sensorCount">센서 수</label>
+            <label for="create-sensorCount">공사일정</label>
             <input id="create-sensorCount" type="number" min="0" value="0" />
           </div>
           <div class="form-row">
-            <label for="create-buildingYear">준공 연도</label>
-            <input id="create-buildingYear" type="text" placeholder="예: 2010" />
+            <label for="create-buildingYear">실정보고 진행 상황</label>
+            <input id="create-buildingYear" type="text" placeholder="예: 도면 검토 완료 / 협의 중 / 승인 대기" />
           </div>
         </div>
 
