@@ -44,10 +44,16 @@ function escapeHtml(str) {
     .replaceAll("'", '&#39;');
 }
 
+// ======================
+// ✅ 표기 통일(요청사항)
+// - 안전상태 -> "현장조건"
+// - SAFE/CAUTION/ALERT는 DB 코드값 유지
+// - 화면에만 납품/공사중/영업중으로 보여주기
+// ======================
 function statusKo(status) {
-  if (status === 'SAFE') return '안전';
-  if (status === 'CAUTION') return '주의';
-  if (status === 'ALERT') return '경고';
+  if (status === 'SAFE') return '납품현장';
+  if (status === 'CAUTION') return '공사중 현장';
+  if (status === 'ALERT') return '영업중 현장';
   return status || 'SAFE';
 }
 
@@ -103,6 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const editLon = document.getElementById('edit-lon');
   const editStatus = document.getElementById('edit-status');
   const editConstruction = document.getElementById('edit-construction');
+
+  // ✅ 필드 이름은 그대로 쓰되, 화면 표기는 바뀜
+  // sensorCount -> "공사일정"
+  // buildingYear -> "실정보고 진행 상황"
   const editSensorCount = document.getElementById('edit-sensorCount');
   const editBuildingSize = document.getElementById('edit-buildingSize');
   const editBuildingYear = document.getElementById('edit-buildingYear');
@@ -133,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const createLon = document.getElementById('create-lon');
   const createStatus = document.getElementById('create-status');
   const createConstruction = document.getElementById('create-construction');
+
   const createSensorCount = document.getElementById('create-sensorCount');
   const createBuildingSize = document.getElementById('create-buildingSize');
   const createBuildingYear = document.getElementById('create-buildingYear');
@@ -255,11 +266,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="grid gap-1">
         <div><span class="text-slate-400">현장명:</span> ${escapeHtml(site.name || '')}</div>
         <div><span class="text-slate-400">주소:</span> ${escapeHtml(site.address || '')}</div>
-        <div><span class="text-slate-400">안전:</span> ${escapeHtml(statusKo(site.status))} (${escapeHtml(site.status || 'SAFE')})</div>
+        <div><span class="text-slate-400">현장조건:</span> ${escapeHtml(statusKo(site.status))} (${escapeHtml(site.status || 'SAFE')})</div>
         <div><span class="text-slate-400">공사:</span> ${escapeHtml(constructionKo(getConstruction(site)))} (${escapeHtml(getConstruction(site))})</div>
-        <div><span class="text-slate-400">센서:</span> ${Number(site.sensorCount ?? 0)}개</div>
+        <div><span class="text-slate-400">공사일정:</span> ${Number(site.sensorCount ?? 0)}</div>
         <div><span class="text-slate-400">규모:</span> ${escapeHtml(site.buildingSize || '-')}</div>
-        <div><span class="text-slate-400">준공:</span> ${escapeHtml(site.buildingYear || '-')}</div>
+        <div><span class="text-slate-400">실정보고 진행 상황:</span> ${escapeHtml(site.buildingYear || '-')}</div>
         <div><span class="text-slate-400">좌표:</span> ${lat}, ${lon}</div>
         ${site.notes ? `<div class="mt-1"><span class="text-slate-400">메모:</span> ${escapeHtml(site.notes)}</div>` : ''}
       </div>
@@ -289,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-weight:700;margin-bottom:4px">${escapeHtml(s.name || '')}</div>
           <div style="font-size:12px;color:#cbd5e1">${escapeHtml(s.address || '')}</div>
           <div style="font-size:11px;color:#94a3b8;margin-top:6px">
-            ${badge} · ${cko} · 센서 ${Number(s.sensorCount ?? 0)}개
+            ${badge} · ${cko} · 공사일정 ${Number(s.sensorCount ?? 0)}
           </div>
         </div>
       `;
@@ -397,7 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const badge = document.createElement('span');
       badge.className = statusBadgeClass(s.status || 'SAFE');
-      badge.textContent = (s.status || 'SAFE');
+      // ✅ SAFE/CAUTION/ALERT 코드 대신 “납품현장/공사중/영업중” 표시
+      badge.textContent = statusKo(s.status || 'SAFE');
 
       item.appendChild(main);
       item.appendChild(badge);
@@ -574,9 +586,9 @@ document.addEventListener('DOMContentLoaded', () => {
         longitude: toNumOrNull(editLon?.value),
         status: (editStatus?.value || 'SAFE'),
         constructionState: (editConstruction?.value || 'IN_PROGRESS'),
-        sensorCount: Number(editSensorCount?.value || 0),
+        sensorCount: Number(editSensorCount?.value || 0), // 공사일정
         buildingSize: (editBuildingSize?.value || '').trim(),
-        buildingYear: (editBuildingYear?.value || '').trim(),
+        buildingYear: (editBuildingYear?.value || '').trim(), // 실정보고 진행 상황
         notes: (editNotes?.value || '').trim()
       };
 
@@ -720,9 +732,9 @@ document.addEventListener('DOMContentLoaded', () => {
         longitude: toNumOrNull(createLon?.value),
         status: (createStatus?.value || 'SAFE'),
         constructionState: (createConstruction?.value || 'IN_PROGRESS'),
-        sensorCount: Number(createSensorCount?.value || 0),
+        sensorCount: Number(createSensorCount?.value || 0), // 공사일정
         buildingSize: (createBuildingSize?.value || '').trim(),
-        buildingYear: (createBuildingYear?.value || '').trim(),
+        buildingYear: (createBuildingYear?.value || '').trim(), // 실정보고 진행 상황
         notes: (createNotes?.value || '').trim()
       };
 
